@@ -57,6 +57,12 @@ class MPSReadout(nn.Module):
             and return shape ``[B, n_heads, out_dim]``. If None, return the raw hidden.
         n_heads: number of output heads (e.g. one per future horizon s=1..n).
         init_std: std of the additive noise on the near-identity cores.
+        const_channel: if True, prepend a constant-1 feature so the local map becomes
+            ``A_j(v_j) = A_j^0 + sum_a v_{j,a} A_j^a``. This lets the MPS represent
+            constants, single-site linear terms, and all higher-order interactions in
+            one architecture -- without it the contraction is a pure multilinear product
+            of the inputs (no additive/linear component), which biases it against tasks
+            with a large linear part.
         seed: optional seed for reproducible init.
 
     Forward input:  ``v`` of shape ``[B, n_sites, p]``.
@@ -73,12 +79,15 @@ class MPSReadout(nn.Module):
         out_dim: int | None = None,
         n_heads: int = 1,
         init_std: float = 1e-2,
+        const_channel: bool = False,
         seed: int | None = None,
     ):
         super().__init__()
         if readout not in _READOUTS:
             raise ValueError(f"readout must be one of {_READOUTS}, got {readout!r}")
-        self.p = p
+        self.p = p                                  # input feature dim
+        self.const_channel = const_channel
+        self.p_eff = p + 1 if const_channel else p  # physical dim of the cores
         self.D = D
         self.n_sites = n_sites
         self.translation_invariant = translation_invariant
@@ -90,12 +99,12 @@ class MPSReadout(nn.Module):
             gen = torch.Generator().manual_seed(seed)
 
         if translation_invariant:
-            core = _near_identity_core(D, p, init_std, gen)  # [D, p, D]
+            core = _near_identity_core(D, self.p_eff, init_std, gen)  # [D, p_eff, D]
             self.core = nn.Parameter(core)
         else:
             cores = torch.stack(
-                [_near_identity_core(D, p, init_std, gen) for _ in range(n_sites)]
-            )  # [N, D, p, D]
+                [_near_identity_core(D, self.p_eff, init_std, gen) for _ in range(n_sites)]
+            )  # [N, D, p_eff, D]
             self.cores = nn.Parameter(cores)
 
         # boundary vectors only needed for vector/scalar readouts
@@ -121,6 +130,9 @@ class MPSReadout(nn.Module):
             raise ValueError(
                 f"expected v of shape [B, {self.n_sites}, {self.p}], got {tuple(v.shape)}"
             )
+        if self.const_channel:
+            ones = v.new_ones(v.shape[0], v.shape[1], 1)
+            v = torch.cat([ones, v], dim=-1)  # [B, N, p+1]
         if self.translation_invariant:
             # same core at every site: [D, p, D] x [B, N, p] -> [B, N, D, D]
             return torch.einsum("dpe,bnp->bnde", self.core, v)
