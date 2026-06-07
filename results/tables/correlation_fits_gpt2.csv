@@ -1,0 +1,15 @@
+model,layer,phi,p,fit_xi,fit_r2,hankel_M,predicted_D
+gpt2,0,pca_whiten_p64,64,inf,1.0,3,2
+gpt2,2,pca_whiten_p64,64,inf,0.998,2,2
+gpt2,4,pca_whiten_p64,64,inf,0.9957,2,2
+gpt2,6,pca_whiten_p64,64,inf,0.7843,3,2
+gpt2,8,pca_whiten_p64,64,inf,0.0415,3,2
+gpt2,10,pca_whiten_p64,64,2953.667,0.4771,2,2
+gpt2,12,pca_whiten_p64,64,330.129,0.7339,2,2
+gpt2,0,pca_whiten_p64,64,36.68,0.9947,-3.517,-0.4084,5,inf,3,3
+gpt2,2,pca_whiten_p64,64,30.643,0.9522,0.804,0.1054,2,inf,2,2
+gpt2,4,pca_whiten_p64,64,5.81,0.8374,2.915,0.207,2,inf,2,2
+gpt2,6,pca_whiten_p64,64,3.306,0.8761,3.513,0.1905,2,inf,3,2
+gpt2,8,pca_whiten_p64,64,4.316,0.9011,5.456,0.23,4,inf,3,2
+gpt2,10,pca_whiten_p64,64,6.12,0.9118,8.889,0.3109,7,3133.13,2,3
+gpt2,12,pca_whiten_p64,64,7.82,0.9258,15.224,0.4943,14,336.01,2,4

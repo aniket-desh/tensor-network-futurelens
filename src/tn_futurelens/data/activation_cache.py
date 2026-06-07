@@ -32,6 +32,11 @@ def load_model(model_name: str = "gpt2", device: str = "cuda:0", dtype=torch.flo
         center_unembed=True,
         device=device,
     )
+    # from_pretrained doesn't always relocate every buffer to a non-default cuda
+    # index; force it so multi-GPU (cuda:1) works. (For process-level pinning,
+    # CUDA_VISIBLE_DEVICES + cuda:0 is also robust.)
+    model = model.to(device)
+    model.cfg.device = device
     model.eval()
     for p in model.parameters():
         p.requires_grad_(False)

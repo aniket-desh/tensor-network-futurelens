@@ -115,6 +115,55 @@ def prony_modes(c: np.ndarray, n_modes: int) -> PronyFit:
     )
 
 
+@dataclass
+class ExpConstFit:
+    xi: float            # bulk correlation length of the decaying part
+    amplitude: float     # amplitude of the decaying part
+    floor: float         # asymptotic (long-range) value
+    persistent_frac: float  # floor / value-at-first-lag
+    r2: float
+    delta_range: tuple[int, int]
+
+
+def exp_plus_const_fit(
+    deltas: np.ndarray, values: np.ndarray, delta_min: int = 1, delta_max: int | None = None
+) -> ExpConstFit:
+    r"""Fit ``c(Delta) = floor + amplitude * exp(-Delta/xi)`` (a finite-xi bulk on top
+    of a long-range floor). Transformer residual correlations need this two-part form:
+    a small persistent subspace (floor) plus an exponentially decaying bulk.
+    """
+    from scipy.optimize import curve_fit
+
+    deltas = np.asarray(deltas, float)
+    values = np.asarray(values, float)
+    if delta_max is None:
+        delta_max = int(deltas.max())
+    m = (deltas >= delta_min) & (deltas <= delta_max)
+    d, y = deltas[m], values[m]
+    if d.size < 4:
+        return ExpConstFit(np.nan, np.nan, np.nan, np.nan, np.nan, (delta_min, delta_max))
+
+    def model(x, amp, xi, floor):
+        return floor + amp * np.exp(-x / xi)
+
+    floor0 = float(y[-1])
+    amp0 = float(max(y[0] - floor0, 1e-6))
+    p0 = [amp0, 5.0, floor0]
+    try:
+        popt, _ = curve_fit(model, d, y, p0=p0, maxfev=20000,
+                            bounds=([0, 0.1, -np.inf], [np.inf, 1e5, np.inf]))
+        amp, xi, floor = popt
+        yhat = model(d, *popt)
+        ss_res = float(np.sum((y - yhat) ** 2))
+        ss_tot = float(np.sum((y - y.mean()) ** 2))
+        r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+    except Exception:
+        return ExpConstFit(np.nan, np.nan, np.nan, np.nan, np.nan, (delta_min, delta_max))
+    pf = float(floor / y[0]) if y[0] != 0 else np.nan
+    return ExpConstFit(float(xi), float(amp), float(floor), pf, float(r2),
+                       (delta_min, delta_max))
+
+
 def hankel_singular_values(c: np.ndarray, n_rows: int | None = None) -> np.ndarray:
     r"""Singular values of the Hankel matrix ``H[i,j] = c[i+j]``.
 
