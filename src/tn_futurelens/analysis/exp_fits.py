@@ -115,6 +115,38 @@ def prony_modes(c: np.ndarray, n_modes: int) -> PronyFit:
     )
 
 
+def hankel_singular_values(c: np.ndarray, n_rows: int | None = None) -> np.ndarray:
+    r"""Singular values of the Hankel matrix ``H[i,j] = c[i+j]``.
+
+    By Kronecker's theorem a sequence that is a sum of ``M`` exponentials has a
+    Hankel matrix of rank exactly ``M``; with noise the ``> M`` singular values are
+    small. The numerical rank is therefore a robust mode-count estimator (the
+    ESPRIT/matrix-pencil philosophy), far less jumpy than Prony+BIC.
+    """
+    c = np.asarray(c, dtype=np.float64)
+    N = c.size
+    if n_rows is None:
+        n_rows = N // 2
+    n_cols = N - n_rows + 1
+    if n_rows < 1 or n_cols < 1:
+        raise ValueError("sequence too short for a Hankel matrix")
+    H = np.empty((n_rows, n_cols))
+    for i in range(n_rows):
+        H[i] = c[i : i + n_cols]
+    return np.linalg.svd(H, compute_uv=False)
+
+
+def effective_mode_count_hankel(
+    c: np.ndarray, rel_threshold: float = 0.05, max_modes: int = 12
+) -> tuple[int, np.ndarray]:
+    """Count Hankel singular values above ``rel_threshold * sigma_max`` (capped)."""
+    sv = hankel_singular_values(c)
+    if sv.size == 0 or sv[0] == 0:
+        return 1, sv
+    m = int(np.sum(sv > rel_threshold * sv[0]))
+    return max(1, min(m, max_modes)), sv
+
+
 @dataclass
 class ModeCountEstimate:
     n_modes: int

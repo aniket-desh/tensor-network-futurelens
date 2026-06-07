@@ -30,7 +30,9 @@ dependencies = [
 [project.optional-dependencies]
 interp = [
     "transformer-lens>=2.0,<3.0",
-    "transformers>=4.40",
+    # transformers 4.44+ removed transformers.TRANSFORMERS_CACHE, which TL 2.15.x
+    # still imports -> pin below that. (legacy HookedTransformer path.)
+    "transformers>=4.40,<4.44",
     "datasets>=2.18",
     "safetensors>=0.4",
 ]
