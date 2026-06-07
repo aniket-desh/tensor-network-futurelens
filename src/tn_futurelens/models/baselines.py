@@ -88,6 +88,48 @@ class AttentionPool(nn.Module):
         return self.head(pooled)                          # [B, n, d_out]
 
 
+class Conv1DProbe(nn.Module):
+    """1D-conv over the observed sites (good at local sequence structure)."""
+
+    def __init__(self, p: int, m: int, d_out: int, n_horizons: int, hidden: int = 128,
+                 kernel: int = 3, layers: int = 2):
+        super().__init__()
+        self.n_horizons, self.d_out = n_horizons, d_out
+        chans = [p] + [hidden] * layers
+        convs = []
+        for i in range(layers):
+            convs += [nn.Conv1d(chans[i], chans[i + 1], kernel, padding=kernel // 2), nn.GELU()]
+        self.conv = nn.Sequential(*convs)
+        self.head = nn.Linear(hidden, n_horizons * d_out)
+
+    def forward(self, v: Tensor) -> Tensor:
+        x = self.conv(v.transpose(1, 2))          # [B, hidden, m]
+        x = x.mean(dim=-1)                          # global average pool over sites
+        return self.head(x).reshape(v.shape[0], self.n_horizons, self.d_out)
+
+
+class BilinearProbe(nn.Module):
+    """Low-rank quadratic probe: linear + (Uv)*(Wv) second-order term over the window.
+
+    Captures multiplicative cross-site structure (like an MPS) but with a fixed
+    second-order form -- a strong, MPS-flavoured baseline.
+    """
+
+    def __init__(self, p: int, m: int, d_out: int, n_horizons: int, rank: int = 64):
+        super().__init__()
+        self.n_horizons, self.d_out = n_horizons, d_out
+        din = m * p
+        self.lin = nn.Linear(din, n_horizons * d_out)
+        self.U = nn.Linear(din, rank, bias=False)
+        self.W = nn.Linear(din, rank, bias=False)
+        self.quad = nn.Linear(rank, n_horizons * d_out, bias=False)
+
+    def forward(self, v: Tensor) -> Tensor:
+        flat = v.reshape(v.shape[0], -1)
+        out = self.lin(flat) + self.quad(self.U(flat) * self.W(flat))
+        return out.reshape(v.shape[0], self.n_horizons, self.d_out)
+
+
 def build_baseline(kind: str, p: int, m: int, d_out: int, n_horizons: int, **kw) -> nn.Module:
     kind = kind.lower()
     if kind in ("b0", "single_linear", "single"):
