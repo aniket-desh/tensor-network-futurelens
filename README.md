@@ -8,7 +8,8 @@ modes. This repo measures that structure in GPT-2 and tests whether it gives an 
 predictive edge over parameter-matched baselines.
 
 Full project spec: [`briefing.md`](briefing.md). Synthesized theory + cited-paper
-notes: [`docs/literature_review.md`](docs/literature_review.md).
+notes: [`docs/literature_review.md`](docs/literature_review.md). **Consolidated findings
+across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).**
 
 ## Status
 
