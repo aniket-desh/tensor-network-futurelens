@@ -10,19 +10,25 @@ predictive edge over parameter-matched baselines.
 Full project spec: [`briefing.md`](briefing.md). Synthesized theory + cited-paper
 notes: [`docs/literature_review.md`](docs/literature_review.md).
 
-## Status (session 1)
+## Status
 
 | # | experiment | result |
 |---|---|---|
 | 00 | [Synthetic validation](docs/00_synthetic_validation/summary.md) | ✅ pipeline validated: AR(1) $\xi$ recovered to ~3%; **transfer-matrix counting law $D\ge\sqrt{M+1}$ confirmed**; MPS layer correct (beats linear 8× more param-efficiently on a multiplicative task) |
 | 01 | [GPT-2 correlation diagnostics](docs/01_gpt2_correlations/summary.md) | ✅ **finite-$\xi$ bulk + long-range persistent subspace**; bulk $\xi$ shortest in middle layers (6–8, $\xi\approx3$–4); persistent subspace grows with depth |
-| 02 | [GPT-2 completion: baselines vs MPS](docs/02_gpt2_baselines_mps/summary.md) | ⚠️ **weak evidence**: MPS improves with $D$ but only matches linear and loses to MLP — finite-$\xi$ structure exists but doesn't give an MPS *readout* a predictive edge |
+| 02 | [GPT-2 completion: baselines vs MPS](docs/02_gpt2_baselines_mps/summary.md) | ⚠️ **weak**: MPS *readout* (PCA, no const) improves with $D$ but loses to baselines |
+| 03 | [Constant channel + learned φ](docs/03_const_learned_phi/summary.md) | ↗️ **const channel** lifts MPS to the linear baseline; **learned φ** is the big lever (helps all); MPS+const+learned-φ **ties/marginally beats** the best baseline at fewer params, saturates by $D{=}16$ |
+| 04 | [B5 masked-MPS completion](docs/04_masked_mps/summary.md) | ➖ B5 masked ≈ B4 readout (marginally better KL/top-1); geometry isn't the missing ingredient |
+| 05 | [Connected-only + TI transfer spectrum](docs/05_connected_transfer/summary.md) | ❎ **clarifying negative**: removing the persistent subspace doesn't help the MPS; trained transfer ξ≈2 doesn't track empirical ξ (3.3→7.8) — the MPS's *mechanism* isn't what carries predictivity |
 
-**One-line takeaway:** the finite-correlation-length structure the project bets on is
-*present* in GPT-2 residuals (Exp 01), but on the completion task an MPS *readout* does
-not beat parameter-matched baselines (Exp 02). The closer-to-theory tests
-(masked-MPS completion B5, translation-invariant MPS + transfer-spectrum check) are the
-natural next steps — see Exp 02 "next steps".
+**One-line takeaway:** the finite-correlation-length **premise survives** in GPT-2
+residuals (Exp 01), and with the right architecture (constant channel + learned φ) an
+MPS is **competitive** with the best parameter-matched baseline (Exp 03–04) — but the
+**MPS-specific transfer-matrix mechanism is not what carries the predictive signal**
+(Exp 05): a learned feature map + light nonlinearity does as well. The most informative
+next directions test the *generative/representational* claim directly (a Born-machine
+MPS of the residual stream; transfer ξ vs empirical with fixed φ) and **scale** to a
+larger model — see Exp 05 "where this leaves the project".
 
 ## Layout
 

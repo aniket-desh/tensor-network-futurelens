@@ -66,12 +66,13 @@ def connected_experiment(layer, device, m=8, n=4, p=64, k_persist=None, n_window
     # estimate persistent projector from whitened Chat(delta=32)
     wsample = torch.stack([pca(seqs[i]) for i in range(min(600, len(seqs)))])  # [S,T,p]
     res = two_point_function(wsample, max_delta=33, whiten=True)
-    svals = torch.linalg.svdvals(res.Chat[32])
+    chat32 = res.Chat[32].float()              # accumulator works in float64; match phi's float32
+    svals = torch.linalg.svdvals(chat32)
     if k_persist is None:
         k_persist = int((svals > 0.5).sum().item())
-    U, S, Vh = torch.linalg.svd(res.Chat[32])
+    U, S, Vh = torch.linalg.svd(chat32)
     Vk = U[:, :k_persist]                      # [p, k] persistent directions
-    P = Vk @ Vk.T                              # projector onto persistent subspace
+    P = (Vk @ Vk.T).float()                    # projector onto persistent subspace
     LOG.info(f"layer {layer}: k_persist={k_persist} (svals>0.5); building windows")
 
     def make_set(project_out):
