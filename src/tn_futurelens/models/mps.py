@@ -33,6 +33,30 @@ from torch import Tensor
 _READOUTS = ("vector", "env", "scalar")
 
 
+# -- transfer-matrix diagnostics as free functions (shared by all MPS modules) ----
+def transfer_matrix_from_core(core: Tensor) -> Tensor:
+    r"""Transfer matrix ``E = sum_a A^a (x) conj(A^a)`` of shape ``[D^2, D^2]`` from a
+    TI core ``[D, p, D]``. Row index ``(a,b)``, column ``(c,d)``."""
+    A = core.detach()
+    D = A.shape[0]
+    E = torch.einsum("apc,bpd->abcd", A, A.conj())
+    return E.reshape(D * D, D * D)
+
+
+def transfer_spectrum_from_core(core: Tensor) -> Tensor:
+    """Eigenvalues of the transfer matrix, sorted by descending magnitude (complex)."""
+    lam = torch.linalg.eigvals(transfer_matrix_from_core(core))
+    return lam[lam.abs().argsort(descending=True)]
+
+
+def correlation_lengths_from_core(core: Tensor, eps: float = 1e-12) -> Tensor:
+    r"""Correlation lengths ``xi_mu = -1/ln|lambda_mu/lambda_1|`` (mu>=2)."""
+    lam = transfer_spectrum_from_core(core)
+    lam1 = lam[0].abs().clamp_min(eps)
+    ratios = (lam[1:].abs() / lam1).clamp_min(eps)
+    return -1.0 / torch.log(ratios.clamp_max(1.0 - 1e-12))
+
+
 def _near_identity_core(D: int, p: int, init_std: float, generator=None) -> Tensor:
     """Core ``[D, p, D]`` with each physical slice ~ I/sqrt(p) + noise.
 
@@ -181,24 +205,12 @@ class MPSReadout(nn.Module):
             raise RuntimeError(
                 "transfer_matrix is only defined for a translation-invariant MPS"
             )
-        A = self.core.detach()  # [D, p, D] with legs (left, phys, right); diagnostics only
-        E = torch.einsum("apc,bpd->abcd", A, A.conj())  # [D, D, D, D]
-        return E.reshape(self.D * self.D, self.D * self.D)
+        return transfer_matrix_from_core(self.core)
 
     def transfer_spectrum(self) -> Tensor:
         """Eigenvalues of the transfer matrix, sorted by descending magnitude (complex)."""
-        E = self.transfer_matrix()
-        lam = torch.linalg.eigvals(E)
-        return lam[lam.abs().argsort(descending=True)]
+        return transfer_spectrum_from_core(self.core)
 
     def correlation_lengths(self, eps: float = 1e-12) -> Tensor:
-        r"""Correlation lengths ``xi_mu = -1/ln|lambda_mu / lambda_1|`` for mu >= 2.
-
-        The leading eigenvalue (disconnected part) is divided out; the remaining
-        ``D^2 - 1`` values are the exponential modes of the connected correlator.
-        Returned sorted by descending |lambda| (i.e. longest xi first).
-        """
-        lam = self.transfer_spectrum()
-        lam1 = lam[0].abs().clamp_min(eps)
-        ratios = (lam[1:].abs() / lam1).clamp_min(eps)
-        return -1.0 / torch.log(ratios.clamp_max(1.0 - 1e-12))
+        r"""Correlation lengths ``xi_mu = -1/ln|lambda_mu / lambda_1|`` for mu >= 2 (longest first)."""
+        return correlation_lengths_from_core(self.core, eps)
