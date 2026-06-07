@@ -55,7 +55,7 @@ and is **the wrong summary**; the trace/Frobenius reveal the decaying bulk.
 
 ---
 
-## Interpretation (physicist's read)
+## Interpretation
 
 - **The bulk has finite correlation length.** Stripping the persistent subspace, the
   remaining ~50+ whitened directions decay exponentially with $\xi\sim$ a few tokens in

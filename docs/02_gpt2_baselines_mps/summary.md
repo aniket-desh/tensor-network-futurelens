@@ -52,7 +52,7 @@ layer 6 (cross-layer 6→12) — both as expected.
 
 ---
 
-## Interpretation (physicist's read)
+## Interpretation
 
 - **The $D$-scaling is the positive part.** That MPS error falls monotonically with $D$
   and saturates is the signature of a finite set of useful correlation modes — the
