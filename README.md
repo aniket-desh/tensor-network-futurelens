@@ -24,6 +24,7 @@ notes: [`docs/literature_review.md`](docs/literature_review.md).
 | 07 | [Strong baselines + KL objective](docs/07_strong_baselines_kl/summary.md) | ⚖️ **objective ≫ architecture**: KL-training lifts top-1 0.10→0.13 for all models; MPS no edge vs conv1d/bilinear under either objective |
 | 08 | [Horizon + bond sweeps](docs/08_sweep/summary.md) | ↗️ MPS−baseline gap shrinks with horizon (+0.009 @n=1 → tied @n≥4); bond saturates ~D16 at baseline level |
 | 09 | [Bridge: learned-φ-space correlations](docs/09_learned_phi_bridge/summary.md) | ❎ learned φ gives **more** modes (27→58), not fewer — rules out "φ creates an MPS-friendly space" |
+| 10 | [Born-machine MPS (generative B6)](docs/10_born_machine/summary.md) | ❎ true generative conditional completion learns the distribution (NLL 51≪66.5) but is **beaten by a bigram** at next-symbol prediction |
 | 11 | [Scale: GPT-2 medium](docs/11_scale_gpt2_medium/summary.md) | 🔁 **scale-robust**: structure + tie replicate at 345M (modes 14→48, MPS ties baselines at L12) |
 
 **One-line takeaway:** the finite-correlation-length **premise survives** (Exp 01) and
@@ -32,10 +33,14 @@ learned φ) is **competitive** with the best parameter-matched baseline (Exp 03�
 — **but the MPS-specific transfer-matrix mechanism is not what carries predictivity**:
 the residual correlation is high-rank/many-mode (Exp 06), the learned φ doesn't simplify
 it (Exp 09), removing the persistent subspace doesn't help (Exp 05), and the training
-*objective* (KL vs MSE) matters far more than the architecture (Exp 07). Net: **Claim A
-(finite-ξ structure) ✓ · Claim B (predictive advantage) weak/tie · Claim C (transfer-matrix
-mechanism) not supported.** Remaining: a true generative Born-machine MPS (Exp 10), and
-GPT-J-scale with the causal-intervention probe class.
+*objective* (KL vs MSE) matters far more than the architecture (Exp 07). Across the readout (B4),
+masked-completion (B5), and generative Born (B6) forms — and at two model scales — **no
+tensor-network variant shows a mechanism-driven advantage** (Exp 10–11). Net: **Claim A
+(finite-ξ structure) ✓ and scale-robust · Claim B (predictive advantage) weak/tie · Claim C
+(transfer-matrix mechanism) not supported.** The one strongly actionable finding: train
+probes on the **KL/logit objective**, not residual MSE (Exp 07). Remaining open lever:
+GPT-J-scale with the *causal-intervention* probe class (FutureLens's stronger method),
+a different family from the readouts/completions tested here.
 
 ## Layout
 
