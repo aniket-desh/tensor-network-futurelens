@@ -1,0 +1,59 @@
+[project]
+name = "tn-futurelens"
+version = "0.1.0"
+description = "Tensor Network FutureLens: testing finite-correlation-length structure in transformer residual streams with MPS probes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Aniket Deshpande" },
+    { name = "Dmitry Manning-Coe" },
+]
+dependencies = [
+    "torch==2.4.1",
+    "numpy>=1.26,<2.0",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "pandas>=2.0",
+    "einops>=0.7",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "tensorboard>=2.16",
+]
+
+# Interp / activation-extraction stack. Installed separately when we reach
+# Phase 1 (activation caching) so the synthetic-validation phase has a light,
+# robust base env:  `uv sync --extra interp`.
+# transformer-lens pinned <3.0 to keep the LEGACY HookedTransformer.from_pretrained
+# API (folds LayerNorm + centers weights -> valid logit lens). TL3's
+# TransformerBridge preserves raw HF weights and would break the simple logit lens.
+[project.optional-dependencies]
+interp = [
+    "transformer-lens>=2.0,<3.0",
+    "transformers>=4.40",
+    "datasets>=2.18",
+    "safetensors>=0.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tn_futurelens"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+# Pull the CUDA 12.4 torch build (matches the pod's system torch 2.4.1+cu124).
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
