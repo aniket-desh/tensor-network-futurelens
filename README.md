@@ -19,16 +19,23 @@ notes: [`docs/literature_review.md`](docs/literature_review.md).
 | 02 | [GPT-2 completion: baselines vs MPS](docs/02_gpt2_baselines_mps/summary.md) | ⚠️ **weak**: MPS *readout* (PCA, no const) improves with $D$ but loses to baselines |
 | 03 | [Constant channel + learned φ](docs/03_const_learned_phi/summary.md) | ↗️ **const channel** lifts MPS to the linear baseline; **learned φ** is the big lever (helps all); MPS+const+learned-φ **ties/marginally beats** the best baseline at fewer params, saturates by $D{=}16$ |
 | 04 | [B5 masked-MPS completion](docs/04_masked_mps/summary.md) | ➖ B5 masked ≈ B4 readout (marginally better KL/top-1); geometry isn't the missing ingredient |
-| 05 | [Connected-only + TI transfer spectrum](docs/05_connected_transfer/summary.md) | ❎ **clarifying negative**: removing the persistent subspace doesn't help the MPS; trained transfer ξ≈2 doesn't track empirical ξ (3.3→7.8) — the MPS's *mechanism* isn't what carries predictivity |
+| 05 | [Connected-only + TI transfer spectrum](docs/05_connected_transfer/summary.md) | ❎ **clarifying negative**: removing the persistent subspace doesn't help the MPS; trained transfer ξ≈2 doesn't track empirical ξ (3.3→7.8) |
+| 06 | [Mechanistic realization (fixed PCA)](docs/06_mechanistic_realization/summary.md) | 🔬 Ho-Kalman realization in the clean basis: residual correlations are **high-rank (17→48 modes, growing with depth)**, *not* few-mode; implied $D\sim4$–7. Explains why small-$D$ MPS can't win |
+| 07 | [Strong baselines + KL objective](docs/07_strong_baselines_kl/summary.md) | ⚖️ **objective ≫ architecture**: KL-training lifts top-1 0.10→0.13 for all models; MPS no edge vs conv1d/bilinear under either objective |
+| 08 | [Horizon + bond sweeps](docs/08_sweep/summary.md) | ↗️ MPS−baseline gap shrinks with horizon (+0.009 @n=1 → tied @n≥4); bond saturates ~D16 at baseline level |
+| 09 | [Bridge: learned-φ-space correlations](docs/09_learned_phi_bridge/summary.md) | ❎ learned φ gives **more** modes (27→58), not fewer — rules out "φ creates an MPS-friendly space" |
+| 11 | [Scale: GPT-2 medium](docs/11_scale_gpt2_medium/summary.md) | 🔁 **scale-robust**: structure + tie replicate at 345M (modes 14→48, MPS ties baselines at L12) |
 
-**One-line takeaway:** the finite-correlation-length **premise survives** in GPT-2
-residuals (Exp 01), and with the right architecture (constant channel + learned φ) an
-MPS is **competitive** with the best parameter-matched baseline (Exp 03–04) — but the
-**MPS-specific transfer-matrix mechanism is not what carries the predictive signal**
-(Exp 05): a learned feature map + light nonlinearity does as well. The most informative
-next directions test the *generative/representational* claim directly (a Born-machine
-MPS of the residual stream; transfer ξ vs empirical with fixed φ) and **scale** to a
-larger model — see Exp 05 "where this leaves the project".
+**One-line takeaway:** the finite-correlation-length **premise survives** (Exp 01) and
+replicates with scale (Exp 11), and a properly-parameterized MPS (constant channel +
+learned φ) is **competitive** with the best parameter-matched baseline (Exp 03–04, 07–08)
+— **but the MPS-specific transfer-matrix mechanism is not what carries predictivity**:
+the residual correlation is high-rank/many-mode (Exp 06), the learned φ doesn't simplify
+it (Exp 09), removing the persistent subspace doesn't help (Exp 05), and the training
+*objective* (KL vs MSE) matters far more than the architecture (Exp 07). Net: **Claim A
+(finite-ξ structure) ✓ · Claim B (predictive advantage) weak/tie · Claim C (transfer-matrix
+mechanism) not supported.** Remaining: a true generative Born-machine MPS (Exp 10), and
+GPT-J-scale with the causal-intervention probe class.
 
 ## Layout
 
