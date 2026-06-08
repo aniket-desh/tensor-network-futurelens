@@ -28,6 +28,7 @@ across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).**
 | 10 | [Born-machine MPS (generative B6)](docs/10_born_machine/summary.md) | ❎ true generative conditional completion learns the distribution (NLL 51≪66.5) but is **beaten by a bigram** at next-symbol prediction |
 | 11 | [Scale: GPT-2 medium](docs/11_scale_gpt2_medium/summary.md) | 🔁 **scale-robust**: structure + tie replicate at 345M (modes 14→48, MPS ties baselines at L12) |
 | 12 | [GPT-J causal intervention](docs/12_gptj_causal_intervention/summary.md) | ❎ at GPT-J-6B: **intervention ≫ readout** (replicates FutureLens), but **single-state donor beats MLP beats MPS** — the trajectory/TN doesn't help even in FutureLens's strong method |
+| 13 | [Long-horizon + KL objective](docs/13_long_horizon_kl/summary.md) | ➕ **first small positive**: under KL training the MPS edges the best baseline at intermediate horizons (n=8 +0.7%, n=16 +0.5%), ties at n=32, and is the most horizon-robust probe; D=64≈D=16 |
 
 **One-line takeaway:** the finite-correlation-length **premise survives** (Exp 01) and
 replicates with scale (Exp 11), and a properly-parameterized MPS (constant channel +

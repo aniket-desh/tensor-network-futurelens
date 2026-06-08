@@ -16,7 +16,7 @@ A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary
 | Claim | Status | Key evidence |
 |---|---|---|
 | **A — finite-ξ structure** | ✅ **Supported, scale-robust** | Exp 01 (finite-ξ bulk, ξ≈3–8, + persistent subspace growing with depth); Exp 06 (decaying-bulk ξ≈5–9 in the clean fixed basis); Exp 11 (replicates at GPT-2 medium) |
-| **B — predictive advantage** | ⚠️ **Weak / tie** | Exp 02 (readout loses); Exp 03 (with const channel + learned φ, ties best baseline); Exp 07 (no edge vs attention/conv/bilinear under MSE *or* KL); Exp 08 (gap→0 with horizon, never positive); Exp 12 (causal: MPS donor *worst*, single-state best) |
+| **B — predictive advantage** | ⚠️ **Weak / tie, with one small regime-specific positive** | Exp 02 (readout loses); Exp 03 (const+learned φ → ties best baseline); Exp 07 (no edge under MSE/KL at n=4); Exp 12 (causal: MPS donor *worst*). **But Exp 13:** under the KL objective at *intermediate horizons* the MPS edges the best baseline (n=8 +0.7%, n=16 +0.5%, single-seed) and is the most horizon-robust probe — small but consistent |
 | **C — transfer-matrix mechanism** | ❎ **Not supported (full method space)** | Exp 05 (removing persistent subspace doesn't help; learned ξ≠empirical); Exp 06 (correlations are high-rank/many-mode, not few-mode); Exp 09 (learned φ gives *more* modes); Exp 10 (generative Born MPS beaten by a bigram); Exp 12 (causal intervention: TN is the worst donor map) |
 
 Probe families tested (all negative for the TN *mechanism*): readout (B4, Exp 02–03),
@@ -79,6 +79,9 @@ None of these is MPS-specific.
 > replicates from GPT-2 to GPT-J), but it is **high-rank and not carried by the connected
 > modes an MPS is uniquely efficient at — so a tensor-network probe, in readout,
 > masked-completion, generative, or causal-intervention form, is at best competitive with,
-> never mechanistically better than, a learned feature map plus a generic predictor (and
-> for causal interventions the single most-recent state beats the whole trajectory). The
-> analogy was real; the predicted computational advantage was not.**
+> rarely better than, a learned feature map plus a generic predictor (and for causal
+> interventions the single most-recent state beats the whole trajectory). The one place a
+> small, consistent MPS edge does appear is completion under the KL objective at
+> *intermediate* horizons (Exp 13: +0.5–0.7% top-1 at n=8–16, single-seed), exactly the
+> narrow regime the physics analysis predicted. The analogy was real; the predicted
+> *clean* computational advantage was not — only a marginal, regime-specific one.**
