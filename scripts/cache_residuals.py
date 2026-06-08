@@ -41,7 +41,10 @@ def build_sequences(args, out_dir: Path) -> None:
     from transformers import AutoTokenizer
 
     LOG.info(f"building {args.num_sequences} sequences (seq_len={args.seq_len})")
-    tok = AutoTokenizer.from_pretrained(args.model)
+    # GPT-J uses the GPT-2 BPE tokenizer (same 50257 vocab); "gpt-j-6b" is a TransformerLens
+    # alias, not a raw HF id, so resolve the tokenizer explicitly.
+    tok_name = "gpt2" if args.model.lower().startswith("gpt-j") else args.model
+    tok = AutoTokenizer.from_pretrained(tok_name)
     seqs = build_token_sequences(tok, seq_len=args.seq_len,
                                  num_sequences=args.num_sequences, split="train")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -62,7 +65,9 @@ def cache_range(args, out_dir: Path) -> None:
     start, end = args.start, min(args.end if args.end > 0 else S, S)
     LOG.info(f"caching sequences [{start}:{end}] of {S} on {args.device}")
 
-    model = load_model(args.model, device=args.device)
+    dtype = torch.float16 if args.fp16 else torch.float32
+    model = load_model(args.model, device=args.device, dtype=dtype,
+                       process_weights=not args.no_process)
     n_layers = model.cfg.n_layers
     layers = [l for l in args.layers if l <= n_layers]
 
@@ -99,6 +104,9 @@ def main():
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--shard-size", type=int, default=1000)
     ap.add_argument("--build-only", action="store_true")
+    ap.add_argument("--fp16", action="store_true", help="load model in fp16 (large models)")
+    ap.add_argument("--no-process", action="store_true",
+                    help="from_pretrained_no_processing (fast load, fp16 large models)")
     ap.add_argument("--out-dir", default=None)
     args = ap.parse_args()
 

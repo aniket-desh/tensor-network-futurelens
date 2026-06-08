@@ -21,20 +21,27 @@ import torch
 from torch import Tensor
 
 
-def load_model(model_name: str = "gpt2", device: str = "cuda:0", dtype=torch.float32):
-    """Load a frozen HookedTransformer (legacy API, LN folded)."""
+def load_model(model_name: str = "gpt2", device: str = "cuda:0", dtype=torch.float32,
+               process_weights: bool = True):
+    """Load a frozen HookedTransformer.
+
+    ``process_weights=True`` (default) folds LayerNorm + centers weights (valid logit
+    lens; small models). For large fp16 models (GPT-J) set ``process_weights=False`` to
+    use ``from_pretrained_no_processing`` — far faster load and numerically cleaner at
+    fp16; ``model.ln_final``/``W_U``/``b_U`` still give exact logits (no folding approx),
+    and residual hooks are unchanged.
+    """
     from transformer_lens import HookedTransformer
 
-    model = HookedTransformer.from_pretrained(
-        model_name,
-        fold_ln=True,
-        center_writing_weights=True,
-        center_unembed=True,
-        device=device,
-    )
-    # from_pretrained doesn't always relocate every buffer to a non-default cuda
-    # index; force it so multi-GPU (cuda:1) works. (For process-level pinning,
-    # CUDA_VISIBLE_DEVICES + cuda:0 is also robust.)
+    if process_weights:
+        model = HookedTransformer.from_pretrained(
+            model_name, fold_ln=True, center_writing_weights=True, center_unembed=True,
+            dtype=dtype, device=device,
+        )
+    else:
+        model = HookedTransformer.from_pretrained_no_processing(
+            model_name, dtype=dtype, device=device,
+        )
     model = model.to(device)
     model.cfg.device = device
     model.eval()
