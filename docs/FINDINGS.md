@@ -16,8 +16,12 @@ A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary
 | Claim | Status | Key evidence |
 |---|---|---|
 | **A — finite-ξ structure** | ✅ **Supported, scale-robust** | Exp 01 (finite-ξ bulk, ξ≈3–8, + persistent subspace growing with depth); Exp 06 (decaying-bulk ξ≈5–9 in the clean fixed basis); Exp 11 (replicates at GPT-2 medium) |
-| **B — predictive advantage** | ⚠️ **Weak / tie** | Exp 02 (readout loses); Exp 03 (with const channel + learned φ, ties best baseline); Exp 07 (no edge vs attention/conv/bilinear under MSE *or* KL); Exp 08 (gap→0 with horizon, never positive) |
-| **C — transfer-matrix mechanism** | ❎ **Not supported** | Exp 05 (removing persistent subspace doesn't help; learned ξ≠empirical); Exp 06 (correlations are high-rank/many-mode, not few-mode); Exp 09 (learned φ gives *more* modes); Exp 10 (generative Born MPS beaten by a bigram) |
+| **B — predictive advantage** | ⚠️ **Weak / tie** | Exp 02 (readout loses); Exp 03 (with const channel + learned φ, ties best baseline); Exp 07 (no edge vs attention/conv/bilinear under MSE *or* KL); Exp 08 (gap→0 with horizon, never positive); Exp 12 (causal: MPS donor *worst*, single-state best) |
+| **C — transfer-matrix mechanism** | ❎ **Not supported (full method space)** | Exp 05 (removing persistent subspace doesn't help; learned ξ≠empirical); Exp 06 (correlations are high-rank/many-mode, not few-mode); Exp 09 (learned φ gives *more* modes); Exp 10 (generative Born MPS beaten by a bigram); Exp 12 (causal intervention: TN is the worst donor map) |
+
+Probe families tested (all negative for the TN *mechanism*): readout (B4, Exp 02–03),
+masked completion (B5, Exp 04), generative Born machine (B6, Exp 10), and causal
+intervention (FutureLens's strong method, Exp 12). Scales: GPT-2 124M / 345M / GPT-J 6B.
 
 ## The refined physics picture
 
@@ -53,23 +57,28 @@ None of these is MPS-specific.
   feature maps; strong baselines (attention/conv/bilinear) — `src/tn_futurelens/models`.
 - 36 unit tests; every experiment reproducible from `scripts/` + `docs/<NN>/plan.md`.
 
-## Honest open levers (not yet tested)
+## Honest open levers (mostly closed)
 
-1. **Causal-intervention probe class** (FutureLens's stronger method) at **GPT-J scale** —
-   a *different family* from the readouts/completions here; the one place a TN map could
-   still matter (map observed trajectory → soft prompt / residual intervention).
+1. **Causal-intervention probe class at GPT-J scale** — **TESTED (Exp 12).** Causal
+   intervention beats the readout (replicates FutureLens), but the single-state donor is
+   best and the MPS is the *worst* donor map — the TN doesn't help here either. The one
+   remaining matched-to-FutureLens lever is now closed.
 2. **Higher-order (non-Gaussian) structure**: Exp 06's realization is second-order; a
-   nonlinear MPS could in principle exploit non-Gaussian residual structure the linear
-   realization misses — but Exp 07/10 (nonlinear MPS, Born MPS) found no edge, so this is
-   a long shot.
+   nonlinear MPS could in principle exploit non-Gaussian structure the linear realization
+   misses — but Exp 07/10/12 (nonlinear MPS, Born MPS, MPS donor) found no edge, so this
+   is a long shot.
 3. **Continuous/Gaussian-emission Born MPS** to avoid Exp 10's quantization loss (for
    Gaussian data this reduces to the Exp 06 realization).
+4. **Maximal-fidelity FutureLens intervention** (raw-state transplant + KL distillation +
+   long prompts) would raise *absolute* numbers but, per Exp 12's stronger-tuning re-run,
+   not the single-vs-MPS ordering.
 
 ## One-sentence takeaway
 
 > Transformer residual streams **do** have finite-correlation-length structure (and it
-> replicates with scale), but it is **high-rank and not carried by the connected modes an
-> MPS is uniquely efficient at — so a tensor-network probe, in readout, masked-completion,
-> or generative form, is at best competitive with, never mechanistically better than,
-> a learned feature map plus a generic predictor; the training objective matters more
-> than the architecture.**
+> replicates from GPT-2 to GPT-J), but it is **high-rank and not carried by the connected
+> modes an MPS is uniquely efficient at — so a tensor-network probe, in readout,
+> masked-completion, generative, or causal-intervention form, is at best competitive with,
+> never mechanistically better than, a learned feature map plus a generic predictor (and
+> for causal interventions the single most-recent state beats the whole trajectory). The
+> analogy was real; the predicted computational advantage was not.**

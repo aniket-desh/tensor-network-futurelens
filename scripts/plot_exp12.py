@@ -19,10 +19,13 @@ def main():
     FIGDIR.mkdir(parents=True, exist_ok=True)
     merged = {}
     meta = {}
-    for p in sorted(RUNS.glob("results_*.json")):
-        d = json.load(open(p))
-        meta = {k: d[k] for k in ("layer", "m", "n", "prompt_len", "n_windows")}
-        merged.update(d["results"])
+    # main comparison: the consistent 12-epoch / P=6 runs (sm = single+mlp+readout, mps)
+    for name in ["results_sm.json", "results_mps.json"]:
+        p = RUNS / name
+        if p.exists():
+            d = json.load(open(p))
+            meta = {k: d[k] for k in ("layer", "m", "n", "prompt_len", "n_windows")}
+            merged.update(d["results"])
     json.dump({**meta, "results": merged}, open(RUNS / "results_merged.json", "w"), indent=2)
 
     n = meta.get("n", 3)
