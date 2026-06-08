@@ -27,8 +27,10 @@ target = the model's *own* future token (the FutureLens "lens" metric).
 
 ![causal](figures/fig1_causal_topk.png)
 
-Stronger-tuning re-run (prompt-len 16, 15 epochs) confirms the ordering — single-state ≥
-MPS at every horizon (see `results_strong_*.json`).
+**Stronger-tuning re-run (prompt-len 16, 15 epochs) confirms and *sharpens* the ordering:**
+single-state rises to **[0.201, 0.138, 0.104]** while MPS stays **[0.129, 0.106, 0.099]** —
+single beats MPS at every horizon and the gap *widens* with better tuning (the single-state
+donor benefits more from the longer prompt). The TN ordering is robust to tuning.
 
 ---
 
