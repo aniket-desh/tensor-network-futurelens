@@ -43,3 +43,16 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
 - Smoke tests pass (all 5 models). Full grid launched 21:25 UTC, 4 procs / 2 GPUs:
   n∈{4,8,16}×seeds{0,1,2,3}, n=32×seeds{0,1} (n=32 costs 4× n=8; the decision regime
   is n=8/16). ETA ~01:00 UTC.
+
+## T+0:30 – T+1:00 — ops + first numbers
+
+- **Ops lesson:** container has a 93 GiB cgroup memory cap (host shows 503 GB). Both
+  n=32 jobs were OOM-killed twice during the simultaneous dataset-build peak (~30 GB
+  transient per proc); relaunched staggered (second job waits for the first to pass
+  its build phase). The n∈{4,8,16} jobs were unaffected.
+- Launched Exp 15 part 1 (block coarse-graining mode count, CPU, free) early since it
+  is branch-independent. **First result:** layer 6, b=1 → 27 effective modes
+  (replicates Exp 06's ≈27 exactly — good pipeline sanity); b=2 → **33 modes**, i.e.
+  block-averaging *increases* the mode count so far, like learned-φ did in Exp 09.
+- Exp 14 n=4 results trickling in (seed 0/2): mlp 0.110, conv 0.106, bilinear 0.111,
+  attention 0.106 — bilinear leads at short horizon as in Exp 13.
