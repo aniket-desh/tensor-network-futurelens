@@ -39,14 +39,12 @@ from tn_futurelens.models.baselines import (
 from tn_futurelens.models.mps import MPSReadout
 from tn_futurelens.models.phi import LearnedLinearPhi, PCAPhi
 from tn_futurelens.models.probes import PhiHead
-from tn_futurelens.training.eval import build_completion_dataset, standardize_targets
 from tn_futurelens.utils.logging import count_parameters, get_logger
 from tn_futurelens.utils.seed import set_seed
 
 LOG = get_logger("exp14")
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "data" / "cache" / "gpt2" / "wikitext103"
-OUTDIR = ROOT / "results" / "runs" / "gpt2_exp14_seeds"
 NMAX = 32
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -68,7 +66,7 @@ def top1_correct(probe, X, ttok, *, gpt, mean, std, device, bs=512):
     probe.eval()
     outs = []
     for i in range(0, X.shape[0], bs):
-        pred = probe(X[i:i + bs].to(device)) * std + mean
+        pred = probe(X[i:i + bs].to(device).float()) * std + mean
         logits = decode_all(gpt, pred)
         outs.append((logits.argmax(-1) == ttok[i:i + bs].to(device)).cpu())
     return torch.cat(outs)
@@ -82,8 +80,8 @@ def teacher_kl(probe, X, R, *, gpt, mean, std, device, bs=256):
     tot = torch.zeros(n)
     cnt = 0
     for i in range(0, X.shape[0], bs):
-        pred = probe(X[i:i + bs].to(device)) * std + mean
-        rt = R[i:i + bs].to(device)
+        pred = probe(X[i:i + bs].to(device).float()) * std + mean
+        rt = R[i:i + bs].to(device).float()
         sl = F.log_softmax(decode_all(gpt, pred).float(), -1)
         tl = F.log_softmax(decode_all(gpt, rt).float(), -1)
         kl = (tl.exp() * (tl - sl)).sum(-1)          # [B, n]
@@ -105,8 +103,8 @@ def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
         for i in range(0, ntr, bs):
             idx = perm[i:i + bs]
             opt.zero_grad()
-            pred = probe(Xtr[idx].to(device)) * std + mean      # [B,n,768]
-            rt = Rtr[idx].to(device)
+            pred = probe(Xtr[idx].to(device).float()) * std + mean      # [B,n,768]
+            rt = Rtr[idx].to(device).float()
             sl = F.log_softmax(decode_all(gpt, pred).float(), -1)
             tl = F.softmax(decode_all(gpt, rt).float(), -1)
             loss = (tl * (tl.clamp_min(1e-12).log() - sl)).sum(-1).mean()
@@ -161,42 +159,40 @@ def main():
     ap.add_argument("--epochs", type=int, default=15)
     ap.add_argument("--bs", type=int, default=160)
     ap.add_argument("--tag", default="a")
+    ap.add_argument("--outdir", default="gpt2_exp14_seeds")
+    ap.add_argument("--prep", default=None,
+                    help="path to exp14_prep.py output; default derived from layer/m")
     args = ap.parse_args()
+    OUTDIR = ROOT / "results" / "runs" / args.outdir
     OUTDIR.mkdir(parents=True, exist_ok=True)
     dev, m, p = args.device, args.m, args.p
 
     gpt = load_model("gpt2", device=dev)
-    n_windows = args.n_train + args.n_select + args.n_test
-    X, Rfull, _, meta = build_completion_dataset(CACHE, args.layer, m, NMAX, n_windows)
+    prep_path = Path(args.prep) if args.prep else CACHE / f"exp14_prep_L{args.layer}_m{m}.pt"
+    prep = torch.load(prep_path, map_location="cpu", weights_only=False)
+    assert prep["layer"] == args.layer and prep["m"] == m and prep["p"] == p
+    X, Rfull, ttok = prep["X"], prep["Rfull"], prep["ttok"]        # X/Rfull fp16
+    mean32, std32 = prep["mean"], prep["std"]
     d_model = Rfull.shape[-1]
     N = X.shape[0]
-    ntr, nsel = args.n_train, args.n_select
+    ntr, nsel = prep["split"][0], prep["split"][1]
     # stride-1 windows: each 256-token sequence yields exactly 216 windows (m=8, n=32,
     # +realized token) -> cluster id = index // 216 for sequence-level bootstrap
     LOG.info(f"{N} windows: train {ntr}, select {nsel}, test {N - ntr - nsel} "
              f"(~{(N - ntr - nsel) // 216} independent sequences in test)")
 
-    # teacher tokens (model's own argmax), fp32 decode, computed once
-    with torch.no_grad():
-        ttok = torch.empty(N, NMAX, dtype=torch.long)
-        for i in range(0, N, 512):
-            lg = decode_all(gpt, Rfull[i:i + 512].to(dev).float(), bf16=False)
-            ttok[i:i + 512] = lg.argmax(-1).cpu()
-
-    # PCA fit on TRAIN windows only (Exp 13 fit on all — minor leakage, fixed here)
-    flat_tr = X[:ntr].reshape(-1, d_model)
-    gen = torch.Generator().manual_seed(0)
-    pca = PCAPhi(d_model, p).fit(flat_tr[torch.randperm(flat_tr.shape[0], generator=gen)[:60000]]).to(dev)
+    pca = PCAPhi(d_model, p)
+    pca.load_state_dict(prep["pca"])
+    pca = pca.to(dev)
 
     Xtr, Xsel, Xte = X[:ntr], X[ntr:ntr + nsel], X[ntr + nsel:]
     res_path = OUTDIR / f"results_{args.tag}.json"
     out = {"layer": args.layer, "m": m, "p": p, "n_windows": N,
-           "split": [ntr, nsel, N - ntr - nsel], "runs": []}
+           "split": prep["split"], "runs": []}
 
     for n in args.horizons:
-        R = Rfull[:, :n].float()
-        _, mean, std = standardize_targets(R, ntr)
-        mean, std = mean.to(dev), std.to(dev)
+        R = Rfull[:, :n]                                   # fp16 view; .float() per batch
+        mean, std = mean32[:, :n].to(dev), std32[:, :n].to(dev)
         Rtr = R[:ntr]
         ttok_sel, ttok_te = ttok[ntr:ntr + nsel, :n], ttok[ntr + nsel:, :n]
         for seed in args.seeds:

@@ -56,3 +56,22 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
   block-averaging *increases* the mode count so far, like learned-φ did in Exp 09.
 - Exp 14 n=4 results trickling in (seed 0/2): mlp 0.110, conv 0.106, bilinear 0.111,
   attention 0.106 — bilinear leads at short horizon as in Exp 13.
+
+## T+1:00 – T+1:45 — OOM fight → prep-once refactor; Exp 15 complete
+
+- The 93 GiB cgroup cap kept biting: the relaunched n=32 build peaks OOM-killed the
+  two *main* grid jobs (largest RSS at that moment). Root cause: every process
+  re-built the 100k-window dataset (~28 GB transient).
+- **Fix:** `scripts/exp14_prep.py` builds the dataset once and saves fp16 tensors +
+  teacher tokens + train-split mean/std + train-fit PCA (6.2 GB, lossless — the cache
+  shards are already fp16). Runner now loads prep (~30 s startup, ~8 GB steady) and
+  converts fp16→fp32 per batch. Grid relaunched 22:28 UTC; per-model time dropped
+  ~10× without contention (conv1d epoch: 17 s).
+- Salvaged from the killed runs: complete n=32 seed-0 quintet — **MPS 0.0881 vs best
+  baseline conv1d 0.0849 (+0.32%)**, bilinear collapses (0.0809) as in Exp 13, even
+  with 14.3M params (2.2× MPS).
+- **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
+  effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
+  scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at
+  every scale; no RG-revealed MPS-friendly regime. Figure committed
+  (`figures/fig3_block_coarse_graining.png`).
