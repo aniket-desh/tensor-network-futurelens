@@ -36,9 +36,10 @@ reveals the MLP was disadvantaged by the shared lr: tuned, it recovers to within
 +0.13% of the MPS (3/4 seeds MPS-positive; +0.07% vs the best tuned baseline),
 while the MPS itself is strikingly lr- and seed-insensitive. And at GPT-2 medium the
 edge attenuates to a tie with bilinear (+0.09%, CI [−0.01%, +0.20%]), echoing
-Exp 11. The defensible statement: **under matched budgets the MPS at worst ties the
-best tuned baseline and usually leads slightly, with far lower sensitivity to seed
-and learning rate; under a fixed shared recipe it wins outright everywhere at 124M.**
+Exp 11. The defensible statement: **against tuned baselines the MPS leads slightly on
+average (+0.07% vs the per-seed best; ahead in 3/4 seeds, behind in one), with far
+lower sensitivity to seed and learning rate; under a fixed shared recipe it wins
+outright everywhere at 124M.**
 
 **But the mechanism is not the tensor network's chain.** A surgical control — feeding
 the MPS its sites in a fixed shuffled order, which per-site cores cannot undo — costs
@@ -142,13 +143,14 @@ this data scale, not as a physical resonance.
 
 ![fig2](figures/fig2_top1_vs_horizon.png)
 
-*Figure 2 — absolute test top-1 vs n (seed mean ± range).* Inside the n=32 task the
-per-position profile (all seeds agree) is: bilinear best at the first future position
-(0.148 vs MPS 0.103) and worst beyond ~8 (0.072); **the MPS has the flattest decay
-and is best at every position from ~4 to ~24**. The MPS trades short-range sharpness
-for stability over distance. This retro-explains Exp 08/13: small-n aggregates are
-dominated by early positions (bilinear/MLP territory), so the MPS only looked
-competitive once the horizon window grew.
+*Figure 2 — left: absolute test top-1 vs n (seed mean ± range); right: per-position
+accuracy inside the n=32 task (4-seed mean).* The right panel is the explanation:
+bilinear is best at the first future position (0.148 vs MPS 0.103) and worst beyond
+~8 (≈0.07); **the MPS has the flattest decay and is best at essentially every
+position from ~4 to ~24**. The MPS trades short-range sharpness for stability over
+distance. This retro-explains Exp 08/13: small-n aggregates are dominated by early
+positions (bilinear/MLP territory), so the MPS only looked competitive once the
+horizon window grew.
 
 ## Finding 3 — Mechanism: the chain is irrelevant; multilinearity + bottleneck is what wins
 

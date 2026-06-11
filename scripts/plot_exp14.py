@@ -67,11 +67,16 @@ def main():
     fig.tight_layout()
     fig.savefig(FIGDIR / "fig1_gap_vs_horizon.png", dpi=150)
 
-    # ---- fig 2: absolute top-1 vs n ---------------------------------------
+    # ---- fig 2: absolute top-1 vs n + per-position profile -----------------
     by = defaultdict(lambda: defaultdict(list))   # model -> n -> [seed means]
+    per_h = defaultdict(list)                      # model -> [per-horizon lists] at nmax
+    nmax = max(ns)
     for r in runs:
         by[r["model"]][r["n"]].append(r["test_top1_mean"])
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+        if r["n"] == nmax:
+            per_h[r["model"]].append(r["test_top1_per_h"])
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.3))
+    ax = axes[0]
     for mdl, d in by.items():
         xs = sorted(d)
         mu = np.array([np.mean(d[n]) for n in xs])
@@ -84,8 +89,18 @@ def main():
     ax.set_xticks(ns)
     ax.set_xticklabels([str(n) for n in ns])
     ax.set_xlabel("horizon n (future sites)")
-    ax.set_ylabel("test top-1 agreement (mean over horizons)")
-    ax.set_title("Absolute completion accuracy vs horizon (seed mean ± range)")
+    ax.set_ylabel("test top-1 (mean over horizons)")
+    ax.set_title("Aggregate accuracy vs horizon (seed mean ± range)")
+    ax.legend(fontsize=8)
+    ax = axes[1]
+    for mdl, lists in per_h.items():
+        mu = np.mean(np.array(lists), axis=0)
+        kw = dict(lw=2.5, zorder=5) if mdl == args.mps else dict(lw=1.2, alpha=0.85)
+        ax.plot(np.arange(1, nmax + 1), mu, "-", color=BASE_COLORS.get(mdl, "gray"),
+                label=mdl, **kw)
+    ax.set_xlabel(f"future position s within the n={nmax} task")
+    ax.set_ylabel("test top-1 at position s")
+    ax.set_title(f"Per-position profile (n={nmax}): MPS has the flattest decay")
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(FIGDIR / "fig2_top1_vs_horizon.png", dpi=150)
