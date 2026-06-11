@@ -111,6 +111,19 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
   only correlational evidence (mode counts).
 - Launched layer-8 replication (n=8, 5 models, 4 seeds) to rule out a layer-6 quirk.
 
+## T+4:00 – T+4:45 — layer-8 replication + medium pipeline + full draft
+
+- **Layer 8 (n=8, 4 seeds): edge replicates** — MPS .0989 vs best-per-seed .0976
+  (+0.13%, 4/4 seeds, all per-baseline CIs > 0). Smaller than layer 6 (+0.38%) but
+  unambiguous. Not a layer-6 quirk.
+- Launched GPT-2 medium pipeline (cache layers 12/24 → prep → n=8 grid, 4 seeds).
+  Ops notes: two cache jobs raced on building tokens.pt (one EOFError, relaunched);
+  background `( until ...; cmd ) &` watcher subshells do NOT survive tool-session
+  cleanup — only direct long-running processes do; switched to a single tracked
+  background task for the whole chain.
+- Full summary.md drafted (exec summary ≈560 words, findings 1–4, figures 1–4);
+  medium numbers pending.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at

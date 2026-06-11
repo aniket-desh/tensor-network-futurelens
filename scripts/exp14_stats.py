@@ -25,11 +25,10 @@ import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTDIR = ROOT / "results" / "runs" / "gpt2_exp14_seeds"
 BASELINES = ["mlp", "conv1d", "bilinear", "attention"]
 
 
-def load_runs():
+def load_runs(OUTDIR):
     runs, split = [], None
     for f in sorted(OUTDIR.glob("results_*.json")):
         d = json.load(open(f))
@@ -52,9 +51,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mps", default="mps_D16")
     ap.add_argument("--boot", type=int, default=10000)
+    ap.add_argument("--outdir", default="gpt2_exp14_seeds")
     args = ap.parse_args()
+    OUTDIR = ROOT / "results" / "runs" / args.outdir
     rng = np.random.default_rng(0)
-    runs, split = load_runs()
+    runs, split = load_runs(OUTDIR)
     test_start = split[0] + split[1]            # global index of first test window
     sel = {(r["n"], r["seed"], r["model"]): r["sel_top1_best"] for r in runs}
 

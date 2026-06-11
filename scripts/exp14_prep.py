@@ -24,12 +24,12 @@ from tn_futurelens.utils.logging import get_logger
 
 LOG = get_logger("exp14prep")
 ROOT = Path(__file__).resolve().parents[1]
-CACHE = ROOT / "data" / "cache" / "gpt2" / "wikitext103"
 NMAX = 32
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default="gpt2")
     ap.add_argument("--layer", type=int, default=6)
     ap.add_argument("--m", type=int, default=8)
     ap.add_argument("--p", type=int, default=64)
@@ -39,6 +39,7 @@ def main():
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    CACHE = ROOT / "data" / "cache" / args.model / "wikitext103"
     out = Path(args.out) if args.out else CACHE / f"exp14_prep_L{args.layer}_m{args.m}.pt"
     dev = args.device
 
@@ -48,7 +49,7 @@ def main():
     ntr = args.n_train
     LOG.info(f"built {N} windows (d={d_model})")
 
-    gpt = load_model("gpt2", device=dev)
+    gpt = load_model(args.model, device=dev)
     with torch.no_grad():
         ttok = torch.empty(N, NMAX, dtype=torch.long)
         for i in range(0, N, 512):

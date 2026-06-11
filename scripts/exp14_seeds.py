@@ -44,7 +44,6 @@ from tn_futurelens.utils.seed import set_seed
 
 LOG = get_logger("exp14")
 ROOT = Path(__file__).resolve().parents[1]
-CACHE = ROOT / "data" / "cache" / "gpt2" / "wikitext103"
 NMAX = 32
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -172,6 +171,7 @@ def main():
     ap.add_argument("--models", nargs="+",
                     default=["mlp", "conv1d", "bilinear", "attention", "mps_D16"])
     ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--model", default="gpt2")
     ap.add_argument("--layer", type=int, default=6)
     ap.add_argument("--m", type=int, default=8)
     ap.add_argument("--p", type=int, default=64)
@@ -189,7 +189,8 @@ def main():
     OUTDIR.mkdir(parents=True, exist_ok=True)
     dev, m, p = args.device, args.m, args.p
 
-    gpt = load_model("gpt2", device=dev)
+    CACHE = ROOT / "data" / "cache" / args.model / "wikitext103"
+    gpt = load_model(args.model, device=dev)
     prep_path = Path(args.prep) if args.prep else CACHE / f"exp14_prep_L{args.layer}_m{m}.pt"
     prep = torch.load(prep_path, map_location="cpu", weights_only=False)
     assert prep["layer"] == args.layer and prep["m"] == m and prep["p"] == p
