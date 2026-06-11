@@ -70,6 +70,25 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
 - Salvaged from the killed runs: complete n=32 seed-0 quintet — **MPS 0.0881 vs best
   baseline conv1d 0.0849 (+0.32%)**, bilinear collapses (0.0809) as in Exp 13, even
   with 14.3M params (2.2× MPS).
+## T+1:45 – T+2:45 — Exp 14 verdict forming: the edge is real and broader than Exp 13
+
+- Relaunched grid reproduces pre-OOM numbers exactly (seed-deterministic even with
+  bf16 decode) — good.
+- **n=8 (the Exp 13 headline regime), 4/4 seeds positive on held-out test with the
+  attention baseline included:** MPS 0.0999/0.0998/0.0978/0.0990 (mean 0.0991, sd
+  0.001) vs best-baseline-per-seed mean 0.0953 → **gap +0.38%** (Exp 13 claimed +0.7%
+  on its leaky protocol; the clean number is about half, but solidly positive).
+- **n=4:** MPS mean gap +0.18% (3/4 seeds positive) — Exp 13 had MPS *behind* at n=4;
+  with 40k train windows (vs 25.5k) the MPS edges ahead even at short horizon.
+- **n=32:** MPS mean gap vs best ≈ +0.18% (3/4 seeds positive; attention wins seed 1).
+- **Per-horizon profile (n=32):** bilinear dominates h1 (0.148) then collapses by h8
+  (0.072); the MPS is never best at h1 but has the FLATTEST decay — best at every
+  position h4–h24. The aggregate edge is long-range robustness, not short-range fit.
+- Phase 3 mechanism probes armed to fire when the main grid exits: bond ablation
+  (D=2/4/8/32) + **site-shuffle control** (fixed permutation before the MPS — if the
+  edge survives order destruction the chain mechanism is falsified) + no-const
+  ablation + mlp_shuf harness check, all at n=8 × 4 seeds.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at

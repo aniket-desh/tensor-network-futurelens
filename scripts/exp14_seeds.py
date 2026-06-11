@@ -123,23 +123,45 @@ def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
     return probe, best, ep_ran
 
 
+class SitePermute(torch.nn.Module):
+    """Apply a FIXED site permutation before the head — destroys 1D chain order.
+
+    With per-site cores the MPS cannot relabel the order of matrix multiplication,
+    so if its edge relies on transfer-matrix propagation along the token chain,
+    shuffling must hurt; if the MPS is merely an order-insensitive multilinear
+    feature map, it won't.
+    """
+
+    def __init__(self, head, m):
+        super().__init__()
+        self.head = head
+        gen = torch.Generator().manual_seed(123)        # fixed across seeds/models
+        self.register_buffer("perm", torch.randperm(m, generator=gen))
+
+    def forward(self, v):
+        return self.head(v[:, self.perm])
+
+
 def build_probe(name, *, seed, d_model, p, m, d_out, n, pca):
     set_seed(seed)
     lp = LearnedLinearPhi(d_model, p).init_from_pca(pca)
-    if name == "mlp":
+    base = name.replace("_shuf", "").replace("_noconst", "")
+    if base == "mlp":
         head = MultiSiteMLP(p, m, d_out, n, hidden=256, depth=2)
-    elif name == "conv1d":
+    elif base == "conv1d":
         head = Conv1DProbe(p, m, d_out, n, hidden=128, layers=2)
-    elif name == "bilinear":
+    elif base == "bilinear":
         head = BilinearProbe(p, m, d_out, n, rank=64)
-    elif name == "attention":
+    elif base == "attention":
         head = AttentionPool(p, m, d_out, n, d_model=256, n_heads=4)
-    elif name.startswith("mps_D"):
-        D = int(name.split("D")[1])
+    elif base.startswith("mps_D"):
+        D = int(base.split("D")[1])
         head = MPSReadout(p=p, D=D, n_sites=m, readout="env", out_dim=d_out,
-                          n_heads=n, const_channel=True, seed=seed)
+                          n_heads=n, const_channel="_noconst" not in name, seed=seed)
     else:
         raise ValueError(name)
+    if "_shuf" in name:
+        head = SitePermute(head, m)
     return PhiHead(lp, head)
 
 
