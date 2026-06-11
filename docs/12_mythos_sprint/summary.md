@@ -11,57 +11,61 @@ make the reason legible.
 
 Going into this sprint the repo's verdict was: Claim A (finite-correlation-length
 structure) holds; Claim B (predictive advantage) is a tie; Claim C (transfer-matrix
-mechanism) unsupported — with one fragile exception. Exp 13 had just reported a
-single-seed +0.5–0.7% top-1 edge for an MPS probe at intermediate horizons under the
-KL objective. We chose to **stress-test that lone positive to destruction** instead of
-opening new fronts, because it was the only surviving candidate for Claim B and its
-protocol had five identifiable loopholes: one seed; no attention baseline; the
-early-stop epoch chosen on the same set that was reported; unpaired statistics; and an
-eval set that — because stride-1 windows overlap ~216-fold within a 256-token
-sequence — contained only ~21 independent texts.
+mechanism) unsupported — with one fragile exception: Exp 13's single-seed +0.5–0.7%
+top-1 edge for an MPS probe at intermediate horizons under the KL objective. We chose
+to **stress-test that lone positive to destruction** rather than open new fronts. Its
+protocol had five loopholes: one seed; no attention baseline; the early-stop epoch
+chosen on the reported set; unpaired statistics; and an eval set that — because
+stride-1 windows overlap ~216-fold per 256-token sequence — held only ~21 independent
+texts.
 
-**The edge survived everything we threw at it.** With all five loopholes fixed
-(Exp 14: 4 seeds; added attention baseline; 80/10/10 train/select/held-out-test;
-50k-window ≈ 231-sequence test set; paired cluster bootstraps by sequence), the MPS
-probe (D=16, const channel, learned φ) beats **each of four baselines individually at
-every horizon n ∈ {4,8,16,32}**: all 16 bootstrap 95% CIs exclude zero, 61/64
-per-seed comparisons are positive, and the MPS never has more parameters than the
-MLP. The gap versus the best baseline is +0.18% / +0.38% / +0.21% / +0.18% absolute
-top-1 at n = 4/8/16/32 (~2–4% relative), peaking at n=8 as Exp 13 predicted. The
-profile explains the win: the bilinear baseline is the best 1-step predictor and
-collapses beyond ~8 steps; the MPS decays most gracefully and is best at essentially
-every future position beyond the third. The edge replicates at layer 8 (+0.13%, 4/4
-seeds). At GPT-2 medium it attenuates: the MPS still beats MLP, conv1d and attention
-(CIs > 0) but only ties the bilinear baseline (+0.09%, CI [−0.01%, +0.20%]) — the
-advantage is robust within GPT-2 small and *shrinks toward a tie with scale*, echoing
-Exp 11.
+**The edge survived four of the five attacks, and the fifth shrank it.** With the
+loopholes fixed (Exp 14: 4 seeds; added attention baseline — and a parameter-matched
+1.5M attention; 80/10/10 train/select/held-out-test; 50k-window ≈ 231-sequence test
+set; paired cluster bootstraps by sequence), the MPS probe (D=16, const channel,
+learned φ) beats **each of four baselines individually at every horizon
+n ∈ {4,8,16,32}** under the shared training recipe: all 16 bootstrap 95% CIs exclude
+zero, 61/64 per-seed comparisons positive, MPS never above the MLP's parameter count.
+The gap versus the best baseline is +0.18% / +0.38% / +0.21% / +0.18% absolute top-1
+at n = 4/8/16/32, peaking at n=8 as Exp 13 predicted, and replicating at layer 8
+(+0.13%, 4/4 seeds). The per-position profile explains the win: bilinear is the best
+1-step predictor and collapses beyond ~8 steps; the MPS decays most gracefully and is
+best at essentially every future position beyond the third. **But two further probes
+temper the claim.** Per-model learning-rate tuning (the one hyperparameter we swept)
+reveals the MLP was disadvantaged by the shared lr: tuned, it recovers to within
++0.13% of the MPS (3/4 seeds MPS-positive; +0.07% vs the best tuned baseline),
+while the MPS itself is strikingly lr- and seed-insensitive. And at GPT-2 medium the
+edge attenuates to a tie with bilinear (+0.09%, CI [−0.01%, +0.20%]), echoing
+Exp 11. The defensible statement: **under matched budgets the MPS at worst ties the
+best tuned baseline and usually leads slightly, with far lower sensitivity to seed
+and learning rate; under a fixed shared recipe it wins outright everywhere at 124M.**
 
-**But the mechanism is not the tensor network's chain.** A surgical control —
-feeding the MPS its sites in a fixed shuffled order, which per-site cores cannot
-undo — costs exactly nothing: Δ = −0.00004, CI [−0.0005, +0.0004], while a parallel
-`mlp_shuf` control validates the harness. The bond curve saturates at D≈8 (482k
-params, ~26% of the MLP it beats) and *declines* at D=32. So what wins is the
-**order-insensitive multilinear product structure with a moderate bottleneck** — not
-transfer-matrix propagation along the token chain. Claim C is now *causally*
-falsified, not just unsupported: even where the MPS wins, it does not win by being a
-1D tensor network.
+**But the mechanism is not the tensor network's chain.** A surgical control — feeding
+the MPS its sites in a fixed shuffled order, which per-site cores cannot undo — costs
+exactly nothing (Δ = −0.0000, CI [−0.0005, +0.0004]; an `mlp_shuf` control validates
+the harness). The bond curve saturates at D≈8 (482k params, ~26% of the MLP it beats)
+and *declines* at D=32. What wins is the **order-insensitive multilinear product
+structure with a moderate bottleneck**, not transfer-matrix propagation along the
+chain. Claim C is now *causally* falsified: even where the MPS wins, it does not win
+by being a 1D tensor network.
 
-**The physics escape routes also stay closed (Exp 15).** TASK Experiment D hoped
-RG-style block coarse-graining would reveal a low-mode MPS-friendly description.
-The opposite holds: block-averaging raises the effective mode count (layer 6: 27→45;
-layer 8: 34→49 for b=1→8) while ξ in block units stays fixed at ≈8 — the residual
-stream is approximately self-similar and many-mode at every scale.
+**The physics escape routes stay closed (Exp 15).** TASK Experiment D hoped RG-style
+block coarse-graining would reveal a low-mode MPS-friendly description. The opposite
+holds: block-averaging raises the mode count (layer 6: 27→45; layer 8: 34→49 for
+b=1→8) while ξ in block units stays fixed at ≈8 — the residual stream is
+approximately self-similar and many-mode at every scale.
 
-**Net update to the project:** Claim B moves from "tie" to **small, robust,
-horizon-broad advantage**; Claim C moves from "unsupported" to **falsified by direct
+**Net update to the project:** Claim B moves from "tie" to **"small, horizon-broad
+edge under a shared recipe; tie-to-slight-edge with much lower variance under
+per-model tuning"**; Claim C moves from "unsupported" to **falsified by direct
 intervention**; Claim A's high-rank caveat is reconfirmed at every scale and
-resolution tested. The honest headline: *there is a real, parameter-efficient edge in
-the MPS architecture family, but it is an inductive-bias win of multiplicative
-multilinear maps, not a tensor-network/chain-structure win.* (≈560 words)
+resolution tested. The honest headline: *what advantage exists is an inductive-bias
+and robustness win of parameter-efficient multiplicative multilinear maps — not a
+tensor-network/chain-structure win, and not one that grows with model scale.*
 
 ---
 
-## Finding 1 — The Exp 13 edge is real: MPS beats every baseline at every horizon
+## Finding 1 — The Exp 13 edge is real under a shared recipe; lr-tuning shrinks it to a robust slight-edge
 
 **Setup** (`scripts/exp14_seeds.py`): GPT-2 small, layer 6, m=8 observed sites,
 learned φ (p=64, PCA-init, fit on train only), teacher-KL objective, target = the
@@ -106,7 +110,30 @@ eval windows were ~21 texts; ours are ~231); selection on a disjoint set; the MP
 the smallest of the three large-head models; and the seed-determinism of the pipeline
 was verified (relaunched runs reproduce to 4 decimals).
 
-Two honest caveats. (1) The effect is small: +0.2–0.4% absolute top-1. (2) Exp 13's
+**Red-team 1 — a parameter-matched attention does not close the gap.** The 0.53M
+attention pool was the weakest baseline, so we reran it at d_model=512 (1.54M params,
+~MPS-sized): test top-1 *fell* to .0904 (4 seeds) — width was not its bottleneck.
+
+**Red-team 2 — per-model learning-rate tuning shrinks (but does not flip) the edge.**
+All models shared lr 1.5e-3 (inherited from Exp 13). Sweeping lr ∈ {5e-4, 1.5e-3,
+3e-3} for the three contenders at n=8, choosing each model's lr on the select set:
+
+| model | lr-tuned test top-1 (4 seeds) | seed range |
+|---|---|---|
+| MLP (picks 5e-4) | .0983 | .0946–.1011 |
+| bilinear (picks 5e-4) | .0968 | .0956–.0976 |
+| **MPS-D16** (picks 1.5e-3) | **.0996** | .0990–.0999 |
+
+Tuned gaps: MPS − MLP = +0.13% (3/4 seeds positive, one negative), MPS − bilinear =
++0.28% (4/4), MPS − best-per-seed = +0.07%. So roughly two-thirds of the headline
++0.38% at n=8 was the MLP's lr sensitivity, not representation. What survives
+tuning: a small (+0.1–0.3%) mean edge and a striking **stability** difference — the
+MPS varies by ≤0.001 across seeds and ≤0.003 across a 6× lr range, while the MLP
+spans 0.0065 across seeds at its best lr. The defensible Claim-B statement is
+"at worst a tie, usually slightly ahead, far more robust to seed/lr", not
+"clear outright advantage".
+
+Two further caveats. (1) All effects are small: ≤0.4% absolute top-1. (2) Exp 13's
 "behind at n=4" became "ahead at n=4" when training data grew 1.6× — the *shape* of
 gap-vs-n is data-scale-dependent; read "peak at n=8" as where the edge is largest at
 this data scale, not as a physical resonance.
@@ -200,6 +227,9 @@ MPS-friendliness. (b=1 reproduces Exp 06's mode counts exactly — pipeline sani
   multi-seeding, we would have reported Exp 13's positive as selection noise and
   closed Claim B as a clean no-go. It did not collapse (it confirmed at roughly half
   Exp 13's headline size, with far stronger statistics).
+- If the lr-tuned MLP had *beaten* the MPS on average, we would have attributed the
+  entire Exp 13/14 edge to optimization artifacts. It got within +0.13% (one seed
+  ahead) but not past — the residual edge plus the robustness gap is what we report.
 - If the site-shuffled MPS had lost its edge, we would have claimed a genuine
   chain-structure mechanism (Claim C revival) and invested in TI transfer-matrix
   diagnostics of the trained probes. The opposite happened.
@@ -225,11 +255,15 @@ MPS-friendliness. (b=1 reproduces Exp 06's mode counts exactly — pipeline sani
 
 1. **Drop the chain, keep the product:** test non-TN multiplicative architectures —
    e.g. a symmetrized product-of-experts over sites, multiplicative interactions
-   (Jayakumar et al.), or a μP-style gated bilinear tower at matched params — against
+   (Jayakumar et al.), or a gated bilinear tower at matched params — against
    MPS-D8/D16. If they match the MPS, the tensor-network framing can be retired
    entirely in favor of "multiplicative probes"; if they don't, the MPS
    parameterization itself (shared bottleneck across all interaction orders) is the
    story.
+1b. **Make the robustness claim primary:** the most replicable Exp 14 phenomenon is
+   variance, not mean — MPS seed/lr sd is 3–6× smaller than the MLP's. A
+   probe-stability study (across seeds, lrs, data sizes, layers) is cheap and would
+   either cash this out as the real contribution or kill it.
 2. **Per-position analysis as the primary metric** (not means over horizons): the
    robust-tail effect (Finding 2) is the real phenomenon; design probes and losses
    that target it directly.
@@ -257,6 +291,7 @@ MPS-friendliness. (b=1 reproduces Exp 06's mode counts exactly — pipeline sani
 | `plan.md`, `research_log.md` | plan + chronological log with hourly checkpoints |
 
 Runs: `results/runs/gpt2_exp14_seeds/` (main grid + per-window correctness tensors),
-`gpt2_exp14_mech_a/b` (ablations), `gpt2_exp14_L8` (layer 8), `gpt2_exp15_block`,
-`gpt2med_exp14` (medium). All reproducible: `exp14_prep.py` then `exp14_seeds.py`
-with the tags in `research_log.md`.
+`gpt2_exp14_mech_a/b` (ablations), `gpt2_exp14_L8` (layer 8), `gpt2med_exp14`
+(GPT-2 medium), `gpt2_exp14_attnbig` (parameter-matched attention),
+`gpt2_exp14_lr` (lr sweep), `gpt2_exp15_block`. All reproducible: `exp14_prep.py`
+then `exp14_seeds.py` with the tags recorded in `research_log.md`.

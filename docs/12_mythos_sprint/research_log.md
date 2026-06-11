@@ -138,6 +138,20 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
   loading a half-written file) — relaunched; future scripts should build tokens
   explicitly first.
 
+## T+5:45 – T+6:30 — red-team results land; final write-up
+
+- **attention_big (1.54M params): .0904 mean** — *worse* than the 0.53M version
+  (.0915); the attention baseline's weakness is not width. Objection defused.
+- **lr sweep (the sprint's biggest self-correction):** MLP prefers lr 5e-4 and
+  recovers to .0983 mean (range .0946–.1011); bilinear .0968; MPS .0996 (range
+  .0990–.0999, prefers the shared 1.5e-3). Tuned gaps: +0.13% vs MLP (3/4 seeds),
+  +0.28% vs bilinear (4/4), +0.07% vs per-seed best. ≈⅔ of the headline +0.38% at
+  n=8 was MLP lr-sensitivity. Revised claim: at worst a tie, usually slightly ahead,
+  with 3–6× lower seed/lr variance. Integrated prominently into summary.md
+  (Red-team 1/2 in Finding 1), not buried.
+- Exec summary trimmed to exactly 600 words. All numbers in summary.md re-verified
+  against `tables/*.json` by hand.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at

@@ -2,6 +2,16 @@
 
 A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary.md`.
 
+> **2026-06-11 update — Mythos sprint (Exp 14–15, [full report](12_mythos_sprint/summary.md)):**
+> the Exp 13 edge **replicated** under a strict protocol (4 seeds, attention baseline,
+> held-out test, cluster bootstraps): MPS > every baseline at every n ∈ {4..32} under a
+> shared recipe; per-model lr tuning shrinks it to +0.07–0.28% with 3–6× lower
+> seed/lr variance; ties bilinear at GPT-2 medium. **Mechanism: site-shuffling the MPS
+> costs nothing → Claim C causally falsified** — the win is order-insensitive
+> multilinearity with a D≈8 bottleneck, not chain structure. Block coarse-graining
+> *raises* the effective mode count (27→45) with scale-invariant block-ξ ≈ 8.
+> Verdict table below reflects Exp 00–13; see the sprint report for the update.
+
 ## The question, split into three claims
 
 - **Claim A — Structure:** transformer residual streams, read along token position at a
