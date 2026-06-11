@@ -1,0 +1,65 @@
+# Sprint 2 research log — matrix-product mechanism & robustness
+
+Sprint start: **2026-06-11 19:30 UTC** (12 h budget → ~07:30 UTC). 2× A40 48GB
+(TASK_TWO assumes H100s; pods are the sprint-1 A40s). 93 GiB cgroup cap — prep-once
+discipline from sprint 1 retained.
+
+## T+0:00 – T+0:45 — orientation, plan, runner extensions, launch
+
+1. **What the repo has shown:** Claim A solid (+ self-similar under blocking);
+   Claim B small horizon-broad edge under shared recipe, +0.07–0.28% under per-model
+   lr tuning, 3–6× lower seed/lr variance, tie vs bilinear at medium L12; Claim C
+   causally falsified (shuffle) but bond matrices load-bearing (bond-free product
+   probe = MLP level).
+2. **Remaining loopholes:** training-the-cores never ablated (random-feature
+   hypothesis); non-commutativity tested only via one diagonal probe; robustness
+   claim rests on 4 seeds × 3 lrs; tail advantage observed but never targeted;
+   medium tested at one layer; self-similarity descriptive only.
+3. **Priorities:** deep on 16A (minimal class) + 16B (stability); 16C folded into
+   per-position eval (+ one tail-α run); 16E medium layers 8/16/20 as GPU filler;
+   16D-lite power-law fits on CPU and dilatedconv/treepool as predictive baselines
+   inside 16A.
+
+- Tests 36/36 pass; preps from sprint 1 intact (L6/L8 small, L12 medium).
+- Extended `exp14_seeds.py` (same runner for provenance): `mps_D16_frozen` (random
+  near-identity cores frozen), `mps_D16_frozenorth` (frozen random orthogonal
+  slices), `mps_D16_fixedphi` (frozen PCA φ), `mps_diag_D16` (diagonal/commuting at
+  matched D — hidden width D vs D² confound noted; sprint-1 `multpool` is the
+  matched-params diagonal point), `mps_D16_rank{2,4}` (low-rank core slices; no
+  near-identity init exists at rank<D — intrinsic to the constraint),
+  `mps_D16_sym4` (env averaged over 4 fixed site permutations), `dilatedconv`,
+  `treepool` (16D predictive baselines); `--max-train` (data-size axis),
+  `--tail-alpha` (w_s ∝ s^α KL weights); optimizer now skips frozen params.
+- Smoke: all variants run; at 1 ep × 4k windows everything sits at the
+  predict-the-mean floor (0.0929) — expected; differentiates by 4 ep × 20k
+  (frozen 0.0955 vs diag 0.0929).
+- **Launched 19:45 UTC:** GPU0 = 16A grid (9 variants × 4 seeds, n=8, sprint-1 prep
+  → directly comparable to sprint-1 references). GPU1 = 16B lr-grid chain (only the
+  56 cells missing after reusing sprint-1 runs: all 5 models at lr {3e-4, 1e-3};
+  conv1d/mps_D8 at {5e-4, 3e-3}; then seeds 4–7 at 1.5e-3 for an 8-seed variance
+  estimate).
+
+## T+0:45 – T+1:15 — first wave of results (seed 0–1, partial)
+
+- **16A (mechanism), seed 0:** frozen random near-identity cores **0.0995** ≈ trained
+  D16 (0.0999, sprint 1); seed 1 frozen = **0.1002**. Rank-2 cores 0.0992, rank-4
+  0.0990 — full edge retained. Frozen *orthogonal* cores 0.0967 (worse but >MLP).
+  Frozen-PCA-φ 0.0928 (φ is essential). Diagonal-at-D16 0.0929 = predict-the-mean
+  floor. **Symmetrizing over 4 permutations HURTS (0.0952)** — any one fixed order
+  works; mixing orders blurs the features. dilatedconv 0.0926 / treepool 0.0926 —
+  multiscale predictive baselines fail.
+  → Emerging mechanism: the MPS acts as a **random non-commuting multiplicative
+  feature expansion** (cores need not be trained; effective rank ≤2), with learned φ
+  as the adapter.
+- **16B early:** MLP keeps improving at lower lr — 3e-4 gives 0.1002/0.0995 (s0/s1),
+  *above* the MPS reference. Extended the grid to lr=1e-4 (chained). The tuned-mean
+  edge may die entirely; robustness would then be the whole Claim-B story.
+- **16D (power-law vs exponential): decisive.** After persistent-subspace removal,
+  the bulk correlation decay is **power-law at every layer and block scale** (AIC
+  winner 8/8; pow R² 0.92–0.98 vs exp 0.77–0.87; α≈0.4–0.75 falling with b; robust
+  to n_persist ∈ {4,8,16}). Sprint-1's "scale-invariant block-ξ" is explained:
+  fitting exponentials to a power law gives ξ ∝ window. **Claim A's "finite
+  correlation length" was partly a fit artifact — the de-persisted bulk is
+  scale-free.**
+- Armed chains: GPU0 → medium layers {8,16,20} after 16A; GPU1 → lr 1e-4 cells +
+  data-size axis (80k prep built).

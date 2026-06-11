@@ -90,9 +90,12 @@ def teacher_kl(probe, X, R, *, gpt, mean, std, device, bs=256):
 
 
 def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
-                epochs, bs, seed, patience=3, lr=1.5e-3):
+                epochs, bs, seed, patience=3, lr=1.5e-3, tail_alpha=0.0):
     probe = probe.to(device)
-    opt = torch.optim.Adam(probe.parameters(), lr=lr)
+    n_h = Rtr.shape[1]
+    w = torch.arange(1, n_h + 1, dtype=torch.float32, device=device) ** tail_alpha
+    w = (w / w.mean())                                       # mean-1 position weights
+    opt = torch.optim.Adam([p for p in probe.parameters() if p.requires_grad], lr=lr)
     gen = torch.Generator().manual_seed(seed)
     ntr = Xtr.shape[0]
     best, best_state, since, ep_ran = -1.0, copy.deepcopy(probe.state_dict()), 0, 0
@@ -106,7 +109,8 @@ def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
             rt = Rtr[idx].to(device).float()
             sl = F.log_softmax(decode_all(gpt, pred).float(), -1)
             tl = F.softmax(decode_all(gpt, rt).float(), -1)
-            loss = (tl * (tl.clamp_min(1e-12).log() - sl)).sum(-1).mean()
+            kl = (tl * (tl.clamp_min(1e-12).log() - sl)).sum(-1)    # [B, n]
+            loss = (kl * w).mean()
             loss.backward()
             opt.step()
         ep_ran = ep + 1
@@ -120,6 +124,120 @@ def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
                 break
     probe.load_state_dict(best_state)
     return probe, best, ep_ran
+
+
+class DiagMPS(torch.nn.Module):
+    """Diagonal (commuting) MPS at the SAME bond dimension D: per-site diagonal
+    matrices d_j(ṽ) = Σ_a ṽ_a d_j^a ∈ R^D, product is elementwise. Hidden = D (the
+    diagonal of the env). Isolates non-commutativity at matched D (multpool is the
+    matched-params version with 256 channels)."""
+
+    def __init__(self, p, m, d_out, n_horizons, D=16, init_std=1e-2, seed=0):
+        super().__init__()
+        gen = torch.Generator().manual_seed(seed)
+        # near-identity: diag slices ~ 1/sqrt(p_eff) + noise, const channel built in
+        base = torch.ones(m, p + 1, D) / (p + 1) ** 0.5
+        self.d = torch.nn.Parameter(base + torch.randn(m, p + 1, D, generator=gen) * init_std)
+        self.head = torch.nn.Linear(D, n_horizons * d_out)
+        self.n_horizons, self.d_out = n_horizons, d_out
+
+    def forward(self, v):
+        B = v.shape[0]
+        ones = v.new_ones(B, v.shape[1], 1)
+        vt = torch.cat([ones, v], -1)                       # [B, m, p+1]
+        z = v.new_ones(B, self.d.shape[-1])
+        for j in range(v.shape[1]):
+            z = z * (vt[:, j] @ self.d[j])
+            z = z / z.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        return self.head(z).reshape(B, self.n_horizons, self.d_out)
+
+
+class LowRankMPS(torch.nn.Module):
+    """MPS with cores constrained to rank r: A_j^a = U_j^a V_j^a (U: D×r, V: r×D).
+    The per-site matrix Σ_a ṽ_a A_j^a can still be full rank, but the slice algebra
+    is restricted. No near-identity init exists at rank<D (I is rank D) — trains
+    from small random init; const channel included."""
+
+    def __init__(self, p, m, d_out, n_horizons, D=16, r=2, seed=0):
+        super().__init__()
+        gen = torch.Generator().manual_seed(seed)
+        g = (1.0 / ((p + 1) * (r * D) ** 0.5)) ** 0.5
+        self.U = torch.nn.Parameter(torch.randn(m, p + 1, D, r, generator=gen) * g)
+        self.V = torch.nn.Parameter(torch.randn(m, p + 1, r, D, generator=gen) * g)
+        self.head = torch.nn.Linear(D * D, n_horizons * d_out)
+        self.D, self.n_horizons, self.d_out = D, n_horizons, d_out
+
+    def forward(self, v):
+        B, m, _ = v.shape
+        ones = v.new_ones(B, m, 1)
+        vt = torch.cat([ones, v], -1)                       # [B, m, p+1]
+        cores = torch.einsum("mpdr,mpre->mpde", self.U, self.V)  # [m, p+1, D, D]
+        H = torch.eye(self.D, device=v.device, dtype=v.dtype).expand(B, -1, -1).clone()
+        for j in range(m):
+            M = torch.einsum("pde,bp->bde", cores[j], vt[:, j])
+            H = torch.bmm(H, M)
+            H = H / H.norm(dim=(-2, -1), keepdim=True).clamp_min(1e-12)
+        return self.head(H.reshape(B, -1)).reshape(B, self.n_horizons, self.d_out)
+
+
+class SymmetrizedMPS(torch.nn.Module):
+    """Average the env hidden over K fixed random site permutations (identity first)
+    — an explicitly set-like matrix-product map."""
+
+    def __init__(self, mps_core, m, d_out, n_horizons, K=4):
+        super().__init__()
+        self.mps = mps_core                                  # MPSReadout, out_dim=None
+        gen = torch.Generator().manual_seed(7)
+        perms = [torch.arange(m)] + [torch.randperm(m, generator=gen) for _ in range(K - 1)]
+        self.register_buffer("perms", torch.stack(perms))    # [K, m]
+        self.head = torch.nn.Linear(self.mps.hidden_dim, n_horizons * d_out)
+        self.n_horizons, self.d_out = n_horizons, d_out
+
+    def forward(self, v):
+        hs = [self.mps.contract(v[:, p])[0] for p in self.perms]
+        h = torch.stack(hs).mean(0)
+        return self.head(h).reshape(v.shape[0], self.n_horizons, self.d_out)
+
+
+class DilatedConvProbe(torch.nn.Module):
+    """Multiscale dilated conv stack (16D predictive baseline)."""
+
+    def __init__(self, p, m, d_out, n_horizons, hidden=128):
+        super().__init__()
+        layers = []
+        ch = p
+        for dil in (1, 2, 4):
+            layers += [torch.nn.Conv1d(ch, hidden, 2, dilation=dil, padding=dil),
+                       torch.nn.GELU()]
+            ch = hidden
+        self.conv = torch.nn.Sequential(*layers)
+        self.head = torch.nn.Linear(hidden, n_horizons * d_out)
+        self.n_horizons, self.d_out = n_horizons, d_out
+
+    def forward(self, v):
+        x = self.conv(v.transpose(1, 2)).mean(-1)
+        return self.head(x).reshape(v.shape[0], self.n_horizons, self.d_out)
+
+
+class TreePoolProbe(torch.nn.Module):
+    """Binary-tree pairwise pooling (8→4→2→1), shared combiner per level."""
+
+    def __init__(self, p, m, d_out, n_horizons, hidden=192):
+        super().__init__()
+        assert (m & (m - 1)) == 0, "m must be a power of 2"
+        self.proj = torch.nn.Linear(p, hidden)
+        levels = m.bit_length() - 1
+        self.combine = torch.nn.ModuleList(
+            [torch.nn.Linear(2 * hidden, hidden) for _ in range(levels)])
+        self.head = torch.nn.Linear(hidden, n_horizons * d_out)
+        self.n_horizons, self.d_out = n_horizons, d_out
+
+    def forward(self, v):
+        x = torch.nn.functional.gelu(self.proj(v))           # [B, m, h]
+        for lin in self.combine:
+            B, s, h = x.shape
+            x = torch.nn.functional.gelu(lin(x.reshape(B, s // 2, 2 * h)))
+        return self.head(x[:, 0]).reshape(v.shape[0], self.n_horizons, self.d_out)
 
 
 class MultiplicativePool(torch.nn.Module):
@@ -166,9 +284,45 @@ class SitePermute(torch.nn.Module):
         return self.head(v[:, self.perm])
 
 
+def _orthogonalize_cores(mps, seed):
+    """Replace each core slice A_j^a with a random orthogonal matrix / sqrt(p_eff)."""
+    gen = torch.Generator().manual_seed(1000 + seed)
+    with torch.no_grad():
+        N, D, p_eff, _ = mps.cores.shape
+        for j in range(N):
+            for a in range(p_eff):
+                q, _ = torch.linalg.qr(torch.randn(D, D, generator=gen))
+                mps.cores[j, :, a, :] = q / p_eff ** 0.5
+    return mps
+
+
 def build_probe(name, *, seed, d_model, p, m, d_out, n, pca):
     set_seed(seed)
     lp = LearnedLinearPhi(d_model, p).init_from_pca(pca)
+    # ---- exp16 variants (exact names, checked before generic parsing) ----------
+    if name in ("mps_D16_frozen", "mps_D16_frozenorth", "mps_D16_fixedphi"):
+        head = MPSReadout(p=p, D=16, n_sites=m, readout="env", out_dim=d_out,
+                          n_heads=n, const_channel=True, seed=seed)
+        if name == "mps_D16_frozenorth":
+            head = _orthogonalize_cores(head, seed)
+        if name in ("mps_D16_frozen", "mps_D16_frozenorth"):
+            head.cores.requires_grad_(False)
+        phi = pca if name == "mps_D16_fixedphi" else lp
+        return PhiHead(phi, head)
+    if name == "mps_diag_D16":
+        return PhiHead(lp, DiagMPS(p, m, d_out, n, D=16, seed=seed))
+    if name.startswith("mps_D16_rank"):
+        r = int(name.split("rank")[1])
+        return PhiHead(lp, LowRankMPS(p, m, d_out, n, D=16, r=r, seed=seed))
+    if name == "mps_D16_sym4":
+        core = MPSReadout(p=p, D=16, n_sites=m, readout="env", out_dim=None,
+                          const_channel=True, seed=seed)
+        return PhiHead(lp, SymmetrizedMPS(core, m, d_out, n, K=4))
+    if name == "dilatedconv":
+        return PhiHead(lp, DilatedConvProbe(p, m, d_out, n, hidden=128))
+    if name == "treepool":
+        return PhiHead(lp, TreePoolProbe(p, m, d_out, n, hidden=192))
+    # ---- original families ------------------------------------------------------
     base = name.replace("_shuf", "").replace("_noconst", "")
     if base == "mlp":
         head = MultiSiteMLP(p, m, d_out, n, hidden=256, depth=2)
@@ -210,6 +364,10 @@ def main():
     ap.add_argument("--epochs", type=int, default=15)
     ap.add_argument("--bs", type=int, default=160)
     ap.add_argument("--lr", type=float, default=1.5e-3)
+    ap.add_argument("--tail-alpha", type=float, default=0.0,
+                    help="position weights w_s ∝ s^alpha in the KL loss")
+    ap.add_argument("--max-train", type=int, default=0,
+                    help="if >0, subset the train split to its first k windows")
     ap.add_argument("--tag", default="a")
     ap.add_argument("--outdir", default="gpt2_exp14_seeds")
     ap.add_argument("--prep", default=None,
@@ -229,6 +387,7 @@ def main():
     d_model = Rfull.shape[-1]
     N = X.shape[0]
     ntr, nsel = prep["split"][0], prep["split"][1]
+    ntr_used = min(args.max_train, ntr) if args.max_train > 0 else ntr
     # stride-1 windows: each 256-token sequence yields exactly 216 windows (m=8, n=32,
     # +realized token) -> cluster id = index // 216 for sequence-level bootstrap
     LOG.info(f"{N} windows: train {ntr}, select {nsel}, test {N - ntr - nsel} "
@@ -238,15 +397,16 @@ def main():
     pca.load_state_dict(prep["pca"])
     pca = pca.to(dev)
 
-    Xtr, Xsel, Xte = X[:ntr], X[ntr:ntr + nsel], X[ntr + nsel:]
+    Xtr, Xsel, Xte = X[:ntr_used], X[ntr:ntr + nsel], X[ntr + nsel:]
     res_path = OUTDIR / f"results_{args.tag}.json"
     out = {"layer": args.layer, "m": m, "p": p, "n_windows": N,
-           "split": prep["split"], "runs": []}
+           "split": prep["split"], "lr": args.lr, "tail_alpha": args.tail_alpha,
+           "n_train_used": ntr_used, "runs": []}
 
     for n in args.horizons:
         R = Rfull[:, :n]                                   # fp16 view; .float() per batch
         mean, std = mean32[:, :n].to(dev), std32[:, :n].to(dev)
-        Rtr = R[:ntr]
+        Rtr = R[:ntr_used]
         ttok_sel, ttok_te = ttok[ntr:ntr + nsel, :n], ttok[ntr + nsel:, :n]
         for seed in args.seeds:
             corr_blob = {}
@@ -257,7 +417,8 @@ def main():
                 n_par = count_parameters(probe)
                 probe, sel_best, ep_ran = train_probe(
                     probe, Xtr, Rtr, Xsel, ttok_sel, gpt=gpt, mean=mean, std=std,
-                    device=dev, epochs=args.epochs, bs=args.bs, seed=seed, lr=args.lr)
+                    device=dev, epochs=args.epochs, bs=args.bs, seed=seed, lr=args.lr,
+                    tail_alpha=args.tail_alpha)
                 corr = top1_correct(probe, Xte, ttok_te, gpt=gpt, mean=mean, std=std, device=dev)
                 kl = teacher_kl(probe, Xte, R[ntr + nsel:], gpt=gpt, mean=mean, std=std, device=dev)
                 corr_blob[name] = corr
