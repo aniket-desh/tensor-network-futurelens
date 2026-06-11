@@ -63,3 +63,33 @@ discipline from sprint 1 retained.
   scale-free.**
 - Armed chains: GPU0 → medium layers {8,16,20} after 16A; GPU1 → lr 1e-4 cells +
   data-size axis (80k prep built).
+
+## T+1:15 – T+2:15 — 16A COMPLETE: the MPS is a frozen random feature map
+
+Final paired table (4 seeds, 50k test windows, cluster-boot CIs vs trained MPS-D16
+.0991; full table in `tables/mech_table_n8_full.json`, figure `fig_minclass.png`):
+
+- **Indistinguishable from trained:** frozen random near-identity cores **.0994**
+  (+0.0002 [−0.0004,+0.0009] — training the cores adds NOTHING), rank-2 cores .0993,
+  shuffled .0991, D8 .0989.
+- Slightly below: rank-4 .0986, D32 .0981, no-const .0979, frozen orthogonal .0976
+  (the near-identity component matters mildly; pure random rotations lose 0.15%).
+- **Fail tier (≈MLP .0955 or below):** commuting variants (multpool .0956, diagonal
+  D16 .0937), frozen-PCA-φ .0945 (−0.46% — φ is the essential learned component),
+  symmetrized-over-4-orders .0944 (−0.48% — each single order works, MIXING orders
+  hurts), dilatedconv .0923 / treepool .0921 (multiscale baselines fail → the
+  power-law structure is descriptive, not exploitable by these architectures),
+  conv1d .0922, attention .0914.
+
+**Mechanism settled (Success mode 1):** the minimal sufficient structure is a
+*frozen random near-identity non-commuting matrix product at D≈8–16 + learned linear
+φ + linear head*. The MPS functions as a matrix-product **random kernel/feature
+expansion**; the only learning that matters below the head is φ. Non-commutativity
+necessary (commuting fails), training unnecessary, order arbitrary-but-fixed.
+
+## T+2:15 — 16B interim: tuned-mean edge INVERTS
+
+- MLP at lr 3e-4 (4 seeds): .1002/.0995/.0992/.1020 → **mean .1002 > MPS .0991**.
+  MLP@1e-3 .0974 — its optimum is ≤3e-4 (1e-4 cells queued). With a finer lr grid
+  than sprint 1, the *tuned-mean* MPS edge disappears and likely flips negative;
+  the robustness/no-tuning property becomes the entire Claim-B content.
