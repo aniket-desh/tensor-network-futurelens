@@ -90,9 +90,9 @@ def teacher_kl(probe, X, R, *, gpt, mean, std, device, bs=256):
 
 
 def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
-                epochs, bs, seed, patience=3):
+                epochs, bs, seed, patience=3, lr=1.5e-3):
     probe = probe.to(device)
-    opt = torch.optim.Adam(probe.parameters(), lr=1.5e-3)
+    opt = torch.optim.Adam(probe.parameters(), lr=lr)
     gen = torch.Generator().manual_seed(seed)
     ntr = Xtr.shape[0]
     best, best_state, since, ep_ran = -1.0, copy.deepcopy(probe.state_dict()), 0, 0
@@ -153,6 +153,8 @@ def build_probe(name, *, seed, d_model, p, m, d_out, n, pca):
         head = BilinearProbe(p, m, d_out, n, rank=64)
     elif base == "attention":
         head = AttentionPool(p, m, d_out, n, d_model=256, n_heads=4)
+    elif base == "attention_big":
+        head = AttentionPool(p, m, d_out, n, d_model=512, n_heads=8)
     elif base.startswith("mps_D"):
         D = int(base.split("D")[1])
         head = MPSReadout(p=p, D=D, n_sites=m, readout="env", out_dim=d_out,
@@ -180,6 +182,7 @@ def main():
     ap.add_argument("--n-test", type=int, default=50000)
     ap.add_argument("--epochs", type=int, default=15)
     ap.add_argument("--bs", type=int, default=160)
+    ap.add_argument("--lr", type=float, default=1.5e-3)
     ap.add_argument("--tag", default="a")
     ap.add_argument("--outdir", default="gpt2_exp14_seeds")
     ap.add_argument("--prep", default=None,
@@ -227,7 +230,7 @@ def main():
                 n_par = count_parameters(probe)
                 probe, sel_best, ep_ran = train_probe(
                     probe, Xtr, Rtr, Xsel, ttok_sel, gpt=gpt, mean=mean, std=std,
-                    device=dev, epochs=args.epochs, bs=args.bs, seed=seed)
+                    device=dev, epochs=args.epochs, bs=args.bs, seed=seed, lr=args.lr)
                 corr = top1_correct(probe, Xte, ttok_te, gpt=gpt, mean=mean, std=std, device=dev)
                 kl = teacher_kl(probe, Xte, R[ntr + nsel:], gpt=gpt, mean=mean, std=std, device=dev)
                 corr_blob[name] = corr

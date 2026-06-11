@@ -124,6 +124,20 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
 - Full summary.md drafted (exec summary ≈560 words, findings 1–4, figures 1–4);
   medium numbers pending.
 
+## T+4:45 – T+5:45 — GPT-2 medium replication + red-team runs
+
+- **GPT-2 medium (345M, layer 12, n=8, 4 seeds): the edge attenuates.** MPS .0934 vs
+  bilinear .0925 → +0.09%, CI [−0.01, +0.20] — a tie with the strongest baseline
+  (2/4 seeds positive), while still beating MLP/conv1d/attention with CIs > 0.
+  Reported plainly: advantage solid at 124M, not established at 345M.
+- Red-team self-objections converted into runs: (a) `attention_big` (d_model=512,
+  ~1.5M params — parameter-matched attention) at n=8 × 4 seeds; (b) learning-rate
+  robustness {5e-4, 3e-3} × {mlp, mps_D16} × 2 seeds (shared lr=1.5e-3 could favor
+  either family).
+- Ops: medium token-build race (two cache jobs both built tokens.pt; one EOFError'd
+  loading a half-written file) — relaunched; future scripts should build tokens
+  explicitly first.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at

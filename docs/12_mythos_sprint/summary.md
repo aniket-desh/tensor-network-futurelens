@@ -31,7 +31,10 @@ top-1 at n = 4/8/16/32 (~2–4% relative), peaking at n=8 as Exp 13 predicted. T
 profile explains the win: the bilinear baseline is the best 1-step predictor and
 collapses beyond ~8 steps; the MPS decays most gracefully and is best at essentially
 every future position beyond the third. The edge replicates at layer 8 (+0.13%, 4/4
-seeds) [and at GPT-2 medium: PENDING — grid running].
+seeds). At GPT-2 medium it attenuates: the MPS still beats MLP, conv1d and attention
+(CIs > 0) but only ties the bilinear baseline (+0.09%, CI [−0.01%, +0.20%]) — the
+advantage is robust within GPT-2 small and *shrinks toward a tie with scale*, echoing
+Exp 11.
 
 **But the mechanism is not the tensor network's chain.** A surgical control —
 feeding the MPS its sites in a fixed shuffled order, which per-site cores cannot
@@ -84,9 +87,19 @@ seeds; black dashed: gap vs the best baseline per seed. Every band excludes zero
 
 (4-seed means; full per-seed numbers and CIs in `tables/stats_summary.json`.)
 
-**Robustness:** layer 8 replication (4 seeds): MPS .0989 vs best-per-seed .0976
-(+0.13%, 4/4 positive, CIs vs each individual baseline all > 0,
-`tables/stats_summary_L8.json`). [GPT-2 medium, layer 12: PENDING]
+**Robustness across layer and scale:**
+
+| setting | MPS | best baseline | gap vs best | seeds positive |
+|---|---|---|---|---|
+| GPT-2 small, layer 6 (headline) | .0991 | .0953 (MLP) | **+0.38%** | 4/4 |
+| GPT-2 small, layer 8 | .0989 | .0976 (bilinear) | **+0.13%** | 4/4 |
+| GPT-2 medium (345M), layer 12 | .0934 | .0925 (bilinear) | +0.09% (CI [−.01, +.20]) | 2/4 |
+
+(all n=8, 4 seeds; `tables/stats_summary_L8.json`, `tables/stats_summary_med.json`.)
+At medium scale the MPS still beats MLP (+0.31%), conv1d (+0.53%) and attention
+(+0.81%) with CIs > 0, but **ties the bilinear baseline** — the edge weakens with
+model scale, consistent with Exp 11's earlier tie. We report this plainly: the
+advantage is solid at 124M and not (yet) established at 345M.
 
 Why trust it: paired comparisons on identical windows; clustered CIs (Exp 13's 4.5k
 eval windows were ~21 texts; ours are ~231); selection on a disjoint set; the MPS is
@@ -203,7 +216,10 @@ MPS-friendliness. (b=1 reproduces Exp 06's mode counts exactly — pipeline sani
   cannot pin a single "MPS-friendly horizon" — only that the edge is broadest-based
   at n≈8 with 40k windows.
 - Whether the noconst penalty (−0.12%) interacts with horizon was not explored.
-- [GPT-2 medium replication: PENDING at write time]
+- The GPT-2 medium replication is a partial miss for the advantage claim: positive vs
+  three baselines, tie vs bilinear (2/4 seeds positive vs best). One layer (12 of 24)
+  and one m were tested at medium; a layer sweep there might recover the edge — or
+  confirm that it genuinely fades with scale.
 
 ## What should be tried next
 
