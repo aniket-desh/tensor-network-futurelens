@@ -29,7 +29,7 @@ across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).**
 | 11 | [Scale: GPT-2 medium](docs/11_scale_gpt2_medium/summary.md) | 🔁 **scale-robust**: structure + tie replicate at 345M (modes 14→48, MPS ties baselines at L12) |
 | 12 | [GPT-J causal intervention](docs/12_gptj_causal_intervention/summary.md) | ❎ at GPT-J-6B: **intervention ≫ readout** (replicates FutureLens), but **single-state donor beats MLP beats MPS** — the trajectory/TN doesn't help even in FutureLens's strong method |
 | 13 | [Long-horizon + KL objective](docs/13_long_horizon_kl/summary.md) | ➕ **first small positive**: under KL training the MPS edges the best baseline at intermediate horizons (n=8 +0.7%, n=16 +0.5%), ties at n=32, and is the most horizon-robust probe; D=64≈D=16 |
-| 14–15 | [Mythos sprint: stress-testing the Exp 13 edge](docs/12_mythos_sprint/summary.md) | ✅➗ **edge confirmed under a shared recipe** (4 seeds, +attention baseline, held-out test, cluster-bootstrap CIs > 0 at every n ∈ {4..32}) — but **site-shuffling the MPS costs nothing → Claim C causally falsified** (the win is order-insensitive multilinearity + a D≈8 bottleneck, not chain structure); per-model lr tuning shrinks the edge to +0.07–0.28% with 3–6× lower variance; ties bilinear at GPT-2 medium; block coarse-graining *raises* the mode count (Experiment D closed) |
+| 14–15 | [Mythos sprint: stress-testing the Exp 13 edge](docs/12_mythos_sprint/summary.md) | ✅➗ **edge confirmed under a shared recipe** (4 seeds, +attention baseline, held-out test, cluster-bootstrap CIs > 0 at every n ∈ {4..32}) — mechanism triangulated: **site-shuffling costs nothing (Claim C causally falsified) but a bond-free product probe falls to MLP level** → the win is a permutation-robust *matrix*-product map with a D≈8 bottleneck, not 1D chain structure; per-model lr tuning shrinks the edge to +0.07–0.28% with 3–6× lower variance; ties bilinear at GPT-2 medium; block coarse-graining *raises* the mode count (Experiment D closed) |
 
 **One-line takeaway:** the finite-correlation-length **premise survives** (Exp 01) and
 replicates with scale (Exp 11), and a properly-parameterized MPS (constant channel +
@@ -47,8 +47,9 @@ Net (updated after the [Mythos sprint](docs/12_mythos_sprint/summary.md)): **Cla
 horizon under a shared recipe (4 seeds, held-out test), shrinking to a
 slight-edge/tie (+0.07–0.28%) with far lower seed/lr variance once baselines get
 per-model lr tuning, and to a tie with bilinear at 345M · Claim C (transfer-matrix
-mechanism) ❎ causally falsified — shuffling the MPS's sites costs nothing, so the win
-is order-insensitive multilinearity + a moderate bottleneck, not chain structure.**
+mechanism) ❎ causally falsified — shuffling the MPS's sites costs nothing while a
+bond-free product probe falls to MLP level, so the win is a permutation-robust
+**matrix**-product map with a moderate bond bottleneck, not 1D chain structure.**
 Actionable findings that *do* generalize: (i) causal intervention ≫ readout (Exp 12,
 replicating FutureLens), (ii) train probes on the **KL/logit objective**, not residual
 MSE (Exp 07), and (iii) multiplicative/multilinear probes are a more parameter-efficient,

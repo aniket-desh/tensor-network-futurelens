@@ -19,18 +19,19 @@ rows = json.load(open(ROOT / "results/runs/gpt2_exp14_seeds/mech_table_n8.json")
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.3))
 
 # ---- panel A: ablations + baselines, sorted bars ---------------------------
-order = ["mps_D16", "mps_D16_shuf", "mps_D16_noconst", "mlp", "bilinear", "mlp_shuf",
-         "conv1d", "attention"]
+order = ["mps_D16", "mps_D16_shuf", "mps_D16_noconst", "multpool", "mlp", "bilinear",
+         "mlp_shuf", "conv1d", "attention"]
 labels = {"mps_D16": "MPS D16", "mps_D16_shuf": "MPS D16\nsites SHUFFLED",
           "mps_D16_noconst": "MPS D16\nno const", "mlp_shuf": "MLP\nsites shuffled",
+          "multpool": "mult. pool\n(bond-free, D=1)",
           "mlp": "MLP", "bilinear": "bilinear", "conv1d": "conv1d",
           "attention": "attention"}
 xs = np.arange(len(order))
 means = [rows[m]["mean"] for m in order]
 sds = [rows[m]["seed_sd"] for m in order]
-cols = ["tab:red", "tab:red", "salmon", "tab:blue", "tab:green", "tab:blue",
-        "tab:orange", "tab:purple"]
-alphas = [1, 0.55, 0.4, 0.9, 0.9, 0.45, 0.9, 0.9]
+cols = ["tab:red", "tab:red", "salmon", "tab:brown", "tab:blue", "tab:green",
+        "tab:blue", "tab:orange", "tab:purple"]
+alphas = [1, 0.55, 0.4, 0.9, 0.9, 0.9, 0.45, 0.9, 0.9]
 for x, mu, sd, c, a in zip(xs, means, sds, cols, alphas):
     axes[0].bar(x, mu, yerr=sd, color=c, alpha=a, width=0.7, capsize=3)
 axes[0].set_xticks(xs)

@@ -10,6 +10,8 @@ A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary
 > costs nothing → Claim C causally falsified** — the win is order-insensitive
 > multilinearity with a D≈8 bottleneck, not chain structure. Block coarse-graining
 > *raises* the effective mode count (27→45) with scale-invariant block-ξ ≈ 8.
+> A bond-free product probe (256 × D=1 channels, matched params) falls to MLP level —
+> the non-commuting bond matrices are load-bearing; the token-chain order is not.
 > Verdict table below reflects Exp 00–13; see the sprint report for the update.
 
 ## The question, split into three claims

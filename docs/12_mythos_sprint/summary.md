@@ -20,35 +20,34 @@ stride-1 windows overlap ~216-fold per 256-token sequence — held only ~21 inde
 texts.
 
 **The edge survived four of the five attacks, and the fifth shrank it.** With the
-loopholes fixed (Exp 14: 4 seeds; added attention baseline — and a parameter-matched
-1.5M attention; 80/10/10 train/select/held-out-test; 50k-window ≈ 231-sequence test
-set; paired cluster bootstraps by sequence), the MPS probe (D=16, const channel,
-learned φ) beats **each of four baselines individually at every horizon
-n ∈ {4,8,16,32}** under the shared training recipe: all 16 bootstrap 95% CIs exclude
-zero, 61/64 per-seed comparisons positive, MPS never above the MLP's parameter count.
-The gap versus the best baseline is +0.18% / +0.38% / +0.21% / +0.18% absolute top-1
-at n = 4/8/16/32, peaking at n=8 as Exp 13 predicted, and replicating at layer 8
-(+0.13%, 4/4 seeds). The per-position profile explains the win: bilinear is the best
-1-step predictor and collapses beyond ~8 steps; the MPS decays most gracefully and is
-best at essentially every future position beyond the third. **But two further probes
-temper the claim.** Per-model learning-rate tuning (the one hyperparameter we swept)
-reveals the MLP was disadvantaged by the shared lr: tuned, it recovers to within
-+0.13% of the MPS (3/4 seeds MPS-positive; +0.07% vs the best tuned baseline),
-while the MPS itself is strikingly lr- and seed-insensitive. And at GPT-2 medium the
-edge attenuates to a tie with bilinear (+0.09%, CI [−0.01%, +0.20%]), echoing
-Exp 11. The defensible statement: **against tuned baselines the MPS leads slightly on
-average (+0.07% vs the per-seed best; ahead in 3/4 seeds, behind in one), with far
-lower sensitivity to seed and learning rate; under a fixed shared recipe it wins
-outright everywhere at 124M.**
+loopholes fixed (Exp 14: 4 seeds; attention baselines at 0.5M and parameter-matched
+1.5M; 80/10/10 train/select/held-out-test; 50k-window ≈ 231-sequence test set; paired
+cluster bootstraps by sequence), the MPS probe (D=16, const channel, learned φ) beats
+**each of four baselines individually at every horizon n ∈ {4,8,16,32}** under the
+shared training recipe: all 16 bootstrap 95% CIs exclude zero, 61/64 per-seed
+comparisons positive, MPS never above the MLP's parameter count. The gap vs the best
+baseline is +0.18% / +0.38% / +0.21% / +0.18% absolute top-1 at n = 4/8/16/32,
+peaking at n=8 as Exp 13 predicted, replicating at layer 8 (+0.13%, 4/4 seeds). The
+per-position profile explains the win: bilinear is the best 1-step predictor and
+collapses beyond ~8 steps; the MPS decays most gracefully and leads at essentially
+every position beyond the third. **Two probes temper the claim.** Per-model lr tuning
+shows the MLP was disadvantaged by the shared lr: tuned, it recovers to within +0.13%
+of the MPS (+0.07% vs the best tuned baseline; MPS ahead in 3/4 seeds), while the MPS
+is strikingly lr- and seed-insensitive. At GPT-2 medium the edge attenuates to a tie
+with bilinear (+0.09%, CI [−0.01%, +0.20%]). The defensible statement: **against
+tuned baselines the MPS leads slightly on average with far lower seed/lr sensitivity;
+under a fixed shared recipe it wins outright everywhere at 124M.**
 
-**But the mechanism is not the tensor network's chain.** A surgical control — feeding
-the MPS its sites in a fixed shuffled order, which per-site cores cannot undo — costs
-exactly nothing (Δ = −0.0000, CI [−0.0005, +0.0004]; an `mlp_shuf` control validates
-the harness). The bond curve saturates at D≈8 (482k params, ~26% of the MLP it beats)
-and *declines* at D=32. What wins is the **order-insensitive multilinear product
-structure with a moderate bottleneck**, not transfer-matrix propagation along the
-chain. Claim C is now *causally* falsified: even where the MPS wins, it does not win
-by being a 1D tensor network.
+**The mechanism is the matrices, not the chain.** Feeding the MPS its sites in a
+fixed shuffled order — which per-site cores cannot undo — costs exactly nothing
+(Δ = −0.0000, CI [−0.0005, +0.0004]; an `mlp_shuf` control validates the harness), so
+transfer-matrix propagation along the token chain (Claim C) is *causally* falsified.
+But a constructive control shows pure multilinearity isn't enough either: a bond-free
+product probe (256 parallel D=1 channels, identical params) falls exactly to MLP
+level (.0956). The bond curve saturates at D≈8 (482k params, ~26% of the MLP it
+beats) and declines at D=32. What wins is a **permutation-robust matrix-product map
+with a moderate non-commuting bottleneck** — the "tensor" matters, the "1D chain in
+token order" does not.
 
 **The physics escape routes stay closed (Exp 15).** TASK Experiment D hoped RG-style
 block coarse-graining would reveal a low-mode MPS-friendly description. The opposite
@@ -168,6 +167,7 @@ Paired ablations at n=8 (`tables/mech_table_n8.json`):
 | MPS-D8 (482k params) | .0989 | −0.0003 [−0.0007, +0.0001] |
 | MPS-D32 (6.88M) | .0981 | −0.0010 [−0.0017, −0.0004] |
 | MPS-D16 no const channel | .0979 | −0.0012 [−0.0015, −0.0008] |
+| **mult. pool: bond-free product, 256 × D=1 channels, 1.76M** | .0956 | **−0.0035 [−0.0041, −0.0030]** |
 | MLP (best baseline) | .0955 | −0.0037 [−0.0045, −0.0029] |
 | MLP, sites shuffled (control) | .0946 | ≈ MLP (harness check) |
 | MPS-D4 / D2 | .0944 / .0928 | below baselines |
@@ -179,24 +179,30 @@ Paired ablations at n=8 (`tables/mech_table_n8.json`):
   removed the edge. It did not: **Claim C is falsified causally**, even in the regime
   where the MPS wins. (The `mlp_shuf ≈ mlp` control shows the shuffle harness itself
   is innocuous.)
+- **Pure multilinearity is NOT sufficient.** As a constructive test we built a
+  bond-free multiplicative probe (256 independent scalar product channels
+  z_c = Π_j(W_j v_j + b_j)_c — exactly 256 parallel D=1 chains, same 1.76M params,
+  same init style and per-site normalization). It lands precisely at MLP level
+  (.0956 vs .0955), 0.35% below the MPS. The **non-commuting D×D bond algebra is
+  load-bearing**, even though its 1D ordering is not.
 - **Capacity saturates at D≈8 and over-capacity hurts**: D8 (482k params) already
   beats every baseline — including the 1.83M-param MLP — at ~26% of the parameters;
-  D32 is *worse* than D16. The bottleneck, not the bond structure, is doing the work.
+  D32 is *worse* than D16.
 - **The const channel helps marginally** (−0.12% without), no longer the make-or-break
   ingredient it was at Exp 03's smaller data/objective.
 
-**Interpretation.** What distinguishes the MPS from all four baselines is that it
-computes a *product* of (affine images of) all m sites — a degree-m multilinear map
-with all interaction orders — squeezed through a D²-dimensional bottleneck. The
-shuffle result says the *sequence geometry* of that product is irrelevant; the D-curve
-says its *capacity* is the binding constraint up to ~D8. So the right reading is:
-**multiplicative-interaction probes are a modestly better, more parameter-efficient
-inductive bias than additive/attention probes for residual-stream completion — and the
-MPS happens to be a good parameterization of that family, not a chain model of the
-data.** This is consistent with everything that pointed away from Claim C
-(high-rank correlations, Exp 06/09; trained transfer spectra not tracking empirical ξ,
-Exp 05) while finally explaining how a positive Claim B can coexist with a dead
-Claim C.
+**Interpretation.** The three ablations triangulate the mechanism precisely. The MPS
+computes a degree-m multilinear map of all sites through a D²-dim bottleneck; the
+shuffle says the *sequence order* of that product is irrelevant; the bond-free pool
+says diagonal (commuting) products are worthless — you need the D×D matrices; the
+D-curve says D≈8 suffices and D=32 overfits. So the winning function class is a
+**permutation-robust matrix-product feature map with a moderate bond bottleneck**:
+the "tensor" part of the tensor network matters, the "1D chain in token order" part —
+the physics hypothesis, Claim C — does not. This is consistent with everything that
+pointed away from Claim C (high-rank correlations, Exp 06/09; trained transfer
+spectra not tracking empirical ξ, Exp 05) while explaining how a positive Claim B
+coexists with a dead Claim C: the MPS is a good *architecture* here, not a good
+*model of the data's spatial structure*.
 
 ## Finding 4 — Coarse-graining does not create an MPS-friendly regime (Experiment D closed)
 
@@ -255,13 +261,11 @@ MPS-friendliness. (b=1 reproduces Exp 06's mode counts exactly — pipeline sani
 
 ## What should be tried next
 
-1. **Drop the chain, keep the product:** test non-TN multiplicative architectures —
-   e.g. a symmetrized product-of-experts over sites, multiplicative interactions
-   (Jayakumar et al.), or a gated bilinear tower at matched params — against
-   MPS-D8/D16. If they match the MPS, the tensor-network framing can be retired
-   entirely in favor of "multiplicative probes"; if they don't, the MPS
-   parameterization itself (shared bottleneck across all interaction orders) is the
-   story.
+1. **Map the matrix-product function class.** We already ran the first step: a
+   bond-free (diagonal) product probe falls to MLP level, so the non-commuting
+   matrices are essential. Next: random fixed cores with trained head (is *training*
+   the bond algebra needed?), symmetric/TI cores, and matrix products over random
+   site subsets — to find the minimal structure that retains the edge.
 1b. **Make the robustness claim primary:** the most replicable Exp 14 phenomenon is
    variance, not mean — MPS seed/lr sd is 3–6× smaller than the MLP's. A
    probe-stability study (across seeds, lrs, data sizes, layers) is cheap and would

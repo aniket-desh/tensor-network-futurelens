@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRS = ["gpt2_exp14_seeds", "gpt2_exp14_mech_a", "gpt2_exp14_mech_b"]
+DIRS = ["gpt2_exp14_seeds", "gpt2_exp14_mech_a", "gpt2_exp14_mech_b", "gpt2_exp14_multpool"]
 N = 8
 TEST_START = 50000          # 40k train + 10k select
 SEQ = 216

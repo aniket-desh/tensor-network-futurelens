@@ -122,6 +122,31 @@ def train_probe(probe, Xtr, Rtr, Xsel, ttok_sel, *, gpt, mean, std, device,
     return probe, best, ep_ran
 
 
+class MultiplicativePool(torch.nn.Module):
+    """Order-insensitive multilinear probe with NO bond structure: h independent
+    scalar product channels z_c = prod_j (W_j v_j + b_j)_c, i.e. h parallel D=1
+    chains (near-one init, per-site norm like the MPS). If this matches MPS-D16,
+    the edge is pure multilinearity; if it sits at MLP level, the non-commuting
+    D x D structure matters.
+    """
+
+    def __init__(self, p, m, d_out, n_horizons, hidden=256, init_std=1e-2, seed=0):
+        super().__init__()
+        gen = torch.Generator().manual_seed(seed)
+        self.W = torch.nn.Parameter(torch.randn(m, p, hidden, generator=gen) * init_std)
+        self.b = torch.nn.Parameter(torch.ones(m, hidden))
+        self.head = torch.nn.Linear(hidden, n_horizons * d_out)
+        self.n_horizons, self.d_out = n_horizons, d_out
+
+    def forward(self, v):                                   # [B, m, p]
+        B = v.shape[0]
+        z = v.new_ones(B, self.W.shape[-1])
+        for j in range(v.shape[1]):
+            z = z * (v[:, j] @ self.W[j] + self.b[j])
+            z = z / z.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        return self.head(z).reshape(B, self.n_horizons, self.d_out)
+
+
 class SitePermute(torch.nn.Module):
     """Apply a FIXED site permutation before the head — destroys 1D chain order.
 
@@ -155,6 +180,8 @@ def build_probe(name, *, seed, d_model, p, m, d_out, n, pca):
         head = AttentionPool(p, m, d_out, n, d_model=256, n_heads=4)
     elif base == "attention_big":
         head = AttentionPool(p, m, d_out, n, d_model=512, n_heads=8)
+    elif base == "multpool":
+        head = MultiplicativePool(p, m, d_out, n, hidden=256, seed=seed)
     elif base.startswith("mps_D"):
         D = int(base.split("D")[1])
         head = MPSReadout(p=p, D=D, n_sites=m, readout="env", out_dim=d_out,

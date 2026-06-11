@@ -152,6 +152,21 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
 - Exec summary trimmed to exactly 600 words. All numbers in summary.md re-verified
   against `tables/*.json` by hand.
 
+## T+6:30 – T+7:15 — constructive mechanism test (multpool) + ship
+
+- Built the report's own "next step #1" while budget allowed: **MultiplicativePool**,
+  a bond-free product probe (256 independent scalar channels z_c = Π_j(W_j v_j+b_j)_c
+  = 256 parallel D=1 chains; identical 1.76M params, same init/normalization style).
+  Result (4 seeds, n=8): **.0956 — exactly MLP level (.0955), 0.35% below MPS-D16**
+  (paired CI [−0.0041, −0.0030]).
+- **Mechanism now triangulated from three sides:** shuffle ⇒ order irrelevant;
+  multpool ⇒ commuting products insufficient; D-curve ⇒ D≈8 suffices, D=32 overfits.
+  The winning class is a *permutation-robust matrix-product feature map with a
+  moderate non-commuting bond bottleneck*. The "tensor" matters; the "1D chain in
+  token order" does not. Claim C stays falsified, but the TN architecture is
+  non-trivially better than both its diagonal reduction and all baselines.
+- Final summary/README/FINDINGS updates; exec summary 591 words; pushed to GitHub.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at
