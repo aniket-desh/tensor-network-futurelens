@@ -9,10 +9,10 @@ make the reason legible.
 
 ## Executive summary
 
-Going into this sprint the repo's verdict was: Claim A (finite-correlation-length
-structure) holds; Claim B (predictive advantage) is a tie; Claim C (transfer-matrix
-mechanism) unsupported — with one fragile exception: Exp 13's single-seed +0.5–0.7%
-top-1 edge for an MPS probe at intermediate horizons under the KL objective. We chose
+At sprint start the repo's verdict was: Claim A (finite-correlation-length structure)
+holds; Claim B (predictive advantage) a tie; Claim C (transfer-matrix mechanism)
+unsupported — with one fragile exception: Exp 13's single-seed +0.5–0.7% top-1 edge
+for an MPS probe at intermediate horizons under the KL objective. We chose
 to **stress-test that lone positive to destruction** rather than open new fronts. Its
 protocol had five loopholes: one seed; no attention baseline; the early-stop epoch
 chosen on the reported set; unpaired statistics; and an eval set that — because
