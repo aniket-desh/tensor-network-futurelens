@@ -87,7 +87,28 @@ Final paired table (4 seeds, 50k test windows, cluster-boot CIs vs trained MPS-D
 expansion**; the only learning that matters below the head is φ. Non-commutativity
 necessary (commuting fails), training unnecessary, order arbitrary-but-fixed.
 
-## T+2:15 — 16B interim: tuned-mean edge INVERTS
+## T+3:30 – T+4:15 — 16B COMPLETE: under fair tuning the MPS LOSES; 16E medium curve
+
+- **Full lr grid (6 lrs × 4–8 seeds), per-lr means:** MLP rises monotonically toward
+  low lr (3e-3 .0953 → 1e-4 **.1009**); bilinear same shape (→ **.1001**); mps_D16 is
+  an inverted-U (peak **.0993** at 5e-4, plateau .0984–.0993 over [3e-4,1.5e-3],
+  collapse .0931 at 1e-4); mps_D8 peaks .0981. → **Tuned ranking: MLP > bilinear >
+  MPS-D16 > MPS-D8, with MLP +0.16% over the MPS's own best; 4/4 seeds.**
+  Claim B is not merely shrunk — it is INVERTED under fair tuning. The sprint-1 edge
+  was real only under the shared lr 1.5e-3 (MPS sweet spot, baselines' bad spot).
+- What survives: the lr-robustness contrast is real (MPS spread 0.0032 over the
+  10× range [3e-4,3e-3] vs MLP 0.0049 and a much deeper fall at 1e-4 for MPS), and
+  the shared-lr regret is 0.46% for MLP vs 0.09% for MPS. But "flat response with a
+  lower ceiling" is weak as a practical contribution — anyone with a small tuning
+  budget should use the MLP. Honest verdict: Success mode 5 (clean negative for the
+  predictive claim) + mode 1 (mechanism) + the physics finding.
+- lr 3e-5 bracket run queued (does the MLP keep rising?).
+- **16E medium (shared recipe):** L8 gap vs best baseline +0.21% (3/4 seeds, 1 tie);
+  L16 ≈ tie (+0.02%); with sprint-1 L12 +0.09% → the medium edge decays with depth;
+  L20 running. All shared-recipe numbers — given the tuning result, read these as
+  recipe-conditional, not architecture-superiority claims.
+
+## T+2:15 — 16B interim: tuned-mean edge INVERTS (superseded by T+4:15 above)
 
 - MLP at lr 3e-4 (4 seeds): .1002/.0995/.0992/.1020 → **mean .1002 > MPS .0991**.
   MLP@1e-3 .0974 — its optimum is ≤3e-4 (1e-4 cells queued). With a finer lr grid
