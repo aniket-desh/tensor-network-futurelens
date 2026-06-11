@@ -89,6 +89,28 @@ Sprint start: **2026-06-10 21:01 UTC**. Hardware: 2× NVIDIA A40 48GB, 96 CPU, 5
   edge survives order destruction the chain mechanism is falsified) + no-const
   ablation + mlp_shuf harness check, all at n=8 × 4 seeds.
 
+## T+2:45 – T+4:00 — main grid verdict + mechanism probes complete
+
+- **Main grid (00:00 UTC): the edge is real.** Paired cluster-bootstrap stats: MPS-D16
+  beats each of the four baselines individually at every n∈{4,8,16,32}; all 16 boot95
+  CIs exclude zero; 61/64 per-seed comparisons positive. Gap vs best baseline per
+  seed: +0.18%/+0.38%/+0.21%/+0.18%. Figures 1–2 generated and committed.
+- **Mechanism probes (00:47 UTC), n=8, 4 seeds, paired:**
+  - `mps_D16_shuf` (fixed site permutation): **Δ = −0.0000, CI [−0.0005,+0.0004]** —
+    destroying the 1D chain order costs *nothing*. The transfer-matrix/chain mechanism
+    (Claim C) is positively falsified even though the MPS wins; `mlp_shuf` ≈ `mlp`
+    validates the harness.
+  - Bond curve: D2 .0928 (82k) < D4 .0944 (162k) < **D8 .0989 (482k) ≈ D16 .0991
+    (1.76M)** > D32 .0981 (6.88M, slight overfit). D8 beats every baseline at ~26% of
+    the MLP's parameters.
+  - `mps_D16_noconst`: −0.12% (CI excludes 0) — const channel helps slightly; not the
+    driver.
+- **Reframe:** what wins is the *order-insensitive multilinear product structure with
+  a moderate (D≈8–16) bottleneck*, not tensor-network chain geometry. Claim B turns
+  positive; Claim C stays dead, now with direct causal evidence (shuffle) rather than
+  only correlational evidence (mode counts).
+- Launched layer-8 replication (n=8, 5 models, 4 seeds) to rule out a layer-6 quirk.
+
 - **Exp 15 (block coarse-graining) complete — clean negative for Experiment D:**
   effective modes RISE with block size (L6 27→45, L8 34→49 at b=1→8) while block-ξ is
   scale-invariant (≈8 blocks at every b). The chain is self-similar and many-mode at
