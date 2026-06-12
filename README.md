@@ -9,7 +9,8 @@ predictive edge over parameter-matched baselines.
 
 Full project spec: [`briefing.md`](briefing.md). Synthesized theory + cited-paper
 notes: [`docs/literature_review.md`](docs/literature_review.md). **Consolidated findings
-across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).**
+across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).** Promising threads
+that survived the negative result: [`docs/OPEN_DIRECTIONS.md`](docs/OPEN_DIRECTIONS.md).
 
 ## Status
 

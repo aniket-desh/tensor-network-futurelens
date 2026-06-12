@@ -23,6 +23,8 @@ A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary
 > ~20k training windows, the random-features trade-off). (iii) **Claim A revised:**
 > after persistent-subspace removal the bulk decays as a power law at every block
 > scale (AIC 8/8) — the residual stream is scale-free, not finite-ξ.
+> Positive-outlook threads that emerged from these negatives are logged in
+> [OPEN_DIRECTIONS.md](OPEN_DIRECTIONS.md).
 
 ## The question, split into three claims
 
