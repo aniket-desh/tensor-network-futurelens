@@ -125,23 +125,32 @@ Per-lr means (n=8; 4 seeds, 8 at 1.5e-3):
 
 | lr | 3e-5 | 1e-4 | 3e-4 | 5e-4 | 1e-3 | 1.5e-3 | 3e-3 | best | regret@1.5e-3 |
 |---|---|---|---|---|---|---|---|---|---|
-| MLP | .1009* | **.1009** | .1002 | .0989 | .0974 | .0962 | .0953 | .1009 | .0046 |
-| bilinear | .0986* | **.1001** | .0987 | .0968 | .0949 | .0951 | .0931 | .1001 | .0051 |
-| MPS-D16 | .0931* | .0931 | .0985 | **.0993** | .0992 | .0984 | .0961 | .0993 | .0009 |
+| MLP | **.1013** | .1009 | .1002 | .0989 | .0974 | .0962 | .0953 | .1013 | .0051 |
+| bilinear | **.1003** | .1001 | .0987 | .0968 | .0949 | .0951 | .0931 | .1003 | .0052 |
+| MPS-D16 | .0930 | .0931 | .0985 | **.0993** | .0992 | .0984 | .0961 | .0993 | .0009 |
 
-(*3e-5 column from the bracket run; MLP hits the 15-epoch cap there, so the
-protocol-constrained optimum is ≈1e-4.)
+(at 3e-5 the MLP/bilinear hit the 15-epoch cap, so their true optima may be lower
+still; the MPS at 3e-5/1e-4 early-stops at the predict-the-mean plateau.)
 
-- **Tuned ranking: MLP > bilinear > MPS, MLP ahead of the MPS's own best by +0.16%
-  and ahead in 4/4 seeds.** The sprint-1 conclusion does not survive a finer grid:
-  the lrs sprint 1 tested (5e-4…3e-3) all sit on the baselines' bad side.
+- **Tuned ranking: MLP (.1013) > bilinear (.1003) > MPS-D16 (.0993), the MLP ahead
+  of the MPS's own best by +0.20% and ahead in 4/4 seeds.** The sprint-1 conclusion
+  does not survive a finer grid: the lrs sprint 1 tested (5e-4…3e-3) all sit on the
+  baselines' bad side.
 - The MPS robustness is real but bounded: within 0.1% of its best across
   [3e-4, 1.5e-3] (regret 0.09% at the shared lr vs 0.46% for the MLP), yet its
   *ceiling* is 0.16% below the MLP's. Robustness without a competitive peak is
   insensitivity, not advantage. One lr probe (~2 minutes of compute here) recovers
   the MLP's full margin.
-- Data-size axis (10k–80k train at per-model best lrs, same test set):
-  [DATASIZE — pending final runs]
+- **Data-size axis (10k–80k train, fixed per-model lrs, same 50k-window test set):
+  the MPS wins the low-data regime and loses it as data grows.** At 10k windows MPS
+  .0971 > MLP .0956 > bilinear .0914; by 20k bilinear has caught up; at 40–80k the
+  MLP leads by 0.2–0.4% (80k: MLP .1116 > bilinear .1094 > MPS .1074). This is the classic
+  random-features signature — better sample efficiency at small N, lower asymptotic
+  capacity — and independently corroborates Finding 1's mechanism. (Sprint 1's 25.5k-
+  and 40k-window experiments sat near the crossover, which is why the recipe-bound
+  edge there was small and positive.)
+
+![fig_datasize](figures/fig_datasize.png)
 
 ## Finding 3 — The de-persisted bulk is a power law: Claim A revised
 

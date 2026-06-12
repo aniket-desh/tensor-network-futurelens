@@ -39,7 +39,8 @@ for m, rec in table.items():
 ax.set_xscale("log")
 ax.set_xlabel("learning rate")
 ax.set_ylabel("test top-1 (n=8, mean over seeds ± range)")
-ax.set_title("lr sensitivity: MPS is flat, baselines need tuning")
+ax.set_title("lr response: dense baselines peak ABOVE the MPS plateau at low lr;\n"
+             "the shared lr 1.5e-3 sat in the MPS sweet spot")
 ax.legend(fontsize=8)
 
 # ---- fig B: seed scatter at the shared lr (all seeds incl. 4-7) ----------------

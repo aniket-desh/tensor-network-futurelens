@@ -119,6 +119,17 @@ necessary (commuting fails), training unnecessary, order arbitrary-but-fixed.
 - Figures rendered: fig_minclass, fig_powerlaw (log-log straight vs log-linear
   curved), fig_medium_layers. Datasize 10k/20k done; 40k/80k + tail-α queued.
 
+## T+5:00 – T+5:45 — 3e-5 bracket + data-size axis: the mechanism predicts the phenomenology
+
+- lr 3e-5 (4 seeds): MLP .1013 (epoch-capped), bilinear .1003, MPS .0930. Final tuned
+  ranking MLP > bilinear > MPS by +0.20%/+0.10%.
+- **Data-size axis (10k/20k/40k/80k train, 2 seeds, fixed per-model lrs):** MPS wins
+  at 10k (.0971 vs MLP .0957, bil .0915), crossover ~20k, MLP ahead by 0.2–0.5% at
+  40–80k. Exactly the random-features signature predicted by 16A: sample-efficient
+  at small N, capacity-limited at large N. The whole sprint-1 phenomenology
+  (small positive edge at 25–40k windows under a shared mid-high lr) is now
+  *derivable* from "frozen random multiplicative features + learned φ".
+
 ## T+2:15 — 16B interim: tuned-mean edge INVERTS (superseded by T+4:15 above)
 
 - MLP at lr 3e-4 (4 seeds): .1002/.0995/.0992/.1020 → **mean .1002 > MPS .0991**.
