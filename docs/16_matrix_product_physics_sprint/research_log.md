@@ -130,6 +130,23 @@ necessary (commuting fails), training unnecessary, order arbitrary-but-fixed.
   (small positive edge at 25–40k windows under a shared mid-high lr) is now
   *derivable* from "frozen random multiplicative features + learned φ".
 
+## T+5:45 – T+7:00 — 16C closes the loop; final report
+
+- **16C (tail-weighted KL, n=32):** shared lr: MPS .0877 ≫ MLP .0811, bilinear .0780
+  — the expected tail dominance. Tuned controls: MLP@3e-4 .0877 (exact tie),
+  **MLP@1e-4 .0897, tail-half .0890 vs MPS .0870** — the MLP wins the tail objective
+  and the tail positions once tuned. The last distinctive MPS phenomenon is
+  recipe-bound.
+- All GPU work complete by T+6:00 (~230 runs). Figures 1–5 + tables copied to docs.
+- summary.md finalized (exec 536 words): mechanism = frozen random multiplicative
+  feature map; Claim B closed as clean negative under tuning (MLP .1013 > bilinear
+  .1003 > MPS .0993); data-size crossover corroborates the random-features account
+  (MPS best at 10k, worst at 80k); bulk correlations power-law (Claim A revised);
+  medium layer curve smooth and recipe-conditional.
+- Red-team disclosures added: tuned comparison is seed-paired not cluster-bootstrapped
+  (correctness-file overwrites across lr runs — logging limitation); attention
+  excluded from the lr grid (≥0.6% behind in both sprints).
+
 ## T+2:15 — 16B interim: tuned-mean edge INVERTS (superseded by T+4:15 above)
 
 - MLP at lr 3e-4 (4 seeds): .1002/.0995/.0992/.1020 → **mean .1002 > MPS .0991**.

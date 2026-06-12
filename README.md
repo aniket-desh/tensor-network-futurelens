@@ -30,6 +30,7 @@ across all experiments: [`docs/FINDINGS.md`](docs/FINDINGS.md).**
 | 12 | [GPT-J causal intervention](docs/12_gptj_causal_intervention/summary.md) | ❎ at GPT-J-6B: **intervention ≫ readout** (replicates FutureLens), but **single-state donor beats MLP beats MPS** — the trajectory/TN doesn't help even in FutureLens's strong method |
 | 13 | [Long-horizon + KL objective](docs/13_long_horizon_kl/summary.md) | ➕ **first small positive**: under KL training the MPS edges the best baseline at intermediate horizons (n=8 +0.7%, n=16 +0.5%), ties at n=32, and is the most horizon-robust probe; D=64≈D=16 |
 | 14–15 | [Mythos sprint: stress-testing the Exp 13 edge](docs/12_mythos_sprint/summary.md) | ✅➗ **edge confirmed under a shared recipe** (4 seeds, +attention baseline, held-out test, cluster-bootstrap CIs > 0 at every n ∈ {4..32}) — mechanism triangulated: **site-shuffling costs nothing (Claim C causally falsified) but a bond-free product probe falls to MLP level** → the win is a permutation-robust *matrix*-product map with a D≈8 bottleneck, not 1D chain structure; per-model lr tuning shrinks the edge to +0.07–0.28% with 3–6× lower variance; ties bilinear at GPT-2 medium; block coarse-graining *raises* the mode count (Experiment D closed) |
+| 16 | [Matrix-product physics sprint](docs/16_matrix_product_physics_sprint/summary.md) | 🔚 **the full resolution.** (i) *Mechanism:* frozen random cores ≡ trained cores (+0.0002) — the MPS is a **random multiplicative feature map**; only φ + head learn; rank-2 slices suffice; commuting bases fail. (ii) *Claim B closed negative:* on a 7-point lr grid the tuned ranking is **MLP .1013 > bilinear .1003 > MPS .0993** (4/4 seeds) — every sprint-14/15 edge incl. the tail advantage was recipe-fit, not capability; MPS wins only the low-data regime (≤10–20k windows), the classic random-features trade-off. (iii) *Claim A revised:* de-persisted bulk correlations are **power-law** (AIC 8/8, α≈0.4–0.75) — the residual stream is scale-free, not finite-ξ; the gapped-chain premise was wrong from day one. |
 
 **One-line takeaway:** the finite-correlation-length **premise survives** (Exp 01) and
 replicates with scale (Exp 11), and a properly-parameterized MPS (constant channel +
@@ -41,19 +42,20 @@ it (Exp 09), removing the persistent subspace doesn't help (Exp 05), and the tra
 and now FutureLens's strong **causal intervention** at GPT-J-6B (Exp 12) — and at three
 model scales (124M / 345M / 6B), **no tensor-network variant shows a mechanism-driven
 advantage**; in the causal setting the MPS is the *worst* donor map (single-state wins).
-Net (updated after the [Mythos sprint](docs/12_mythos_sprint/summary.md)): **Claim A
-(finite-ξ structure) ✓, scale-robust, and self-similar under blocking · Claim B
-(predictive advantage) ➗ small but real — the MPS probe beats every baseline at every
-horizon under a shared recipe (4 seeds, held-out test), shrinking to a
-slight-edge/tie (+0.07–0.28%) with far lower seed/lr variance once baselines get
-per-model lr tuning, and to a tie with bilinear at 345M · Claim C (transfer-matrix
-mechanism) ❎ causally falsified — shuffling the MPS's sites costs nothing while a
-bond-free product probe falls to MLP level, so the win is a permutation-robust
-**matrix**-product map with a moderate bond bottleneck, not 1D chain structure.**
-Actionable findings that *do* generalize: (i) causal intervention ≫ readout (Exp 12,
-replicating FutureLens), (ii) train probes on the **KL/logit objective**, not residual
-MSE (Exp 07), and (iii) multiplicative/multilinear probes are a more parameter-efficient,
-seed/lr-robust probe family than MLPs at 124M (Exp 14).
+Net (final, after [sprint 16](docs/16_matrix_product_physics_sprint/summary.md)):
+**Claim A ➗ revised — the persistent/global sector is real, but the de-persisted bulk
+is power-law/scale-free (α≈0.4–0.75), not finite-ξ; the "correlation lengths" of
+Exp 01/06 were exponential fits to a power law · Claim B ❎ closed negative — the MPS
+probe is a frozen random multiplicative feature map (training the cores adds nothing);
+under per-model lr tuning a plain MLP beats it everywhere except the low-data regime
+(≲20k windows); every apparent MPS advantage (mean, horizon-breadth, tail, layer
+effects) was shared-recipe fit, not capability · Claim C ❎ causally falsified
+(site-shuffle, sprint 14–15).** Findings that generalize: (i) causal intervention ≫
+readout (Exp 12, replicating FutureLens); (ii) train probes on the **KL/logit
+objective**, not residual MSE (Exp 07); (iii) **report lr-response curves, not
+single-recipe comparisons** — the sprint-15→16 sign flip is the cautionary example;
+(iv) the scale-free bulk is a real, unexplained property of transformer residual
+streams and the project's most promising open thread.
 
 ## Layout
 

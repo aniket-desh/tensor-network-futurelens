@@ -14,6 +14,16 @@ A single-page synthesis for handoff. Per-experiment detail in `docs/<NN>/summary
 > the non-commuting bond matrices are load-bearing; the token-chain order is not.
 > Verdict table below reflects Exp 00–13; see the sprint report for the update.
 
+> **2026-06-12 update — Matrix-product physics sprint (Exp 16,
+> [full report](16_matrix_product_physics_sprint/summary.md)): the resolution.**
+> (i) Frozen random cores ≡ trained cores: the MPS is a **random multiplicative
+> feature map**; only φ and the head learn. (ii) Under per-model lr tuning the
+> ranking inverts — MLP .1013 > bilinear .1003 > MPS .0993 — and the tail advantage
+> flips too; **Claim B is closed as a clean negative** (the MPS wins only below
+> ~20k training windows, the random-features trade-off). (iii) **Claim A revised:**
+> after persistent-subspace removal the bulk decays as a power law at every block
+> scale (AIC 8/8) — the residual stream is scale-free, not finite-ξ.
+
 ## The question, split into three claims
 
 - **Claim A — Structure:** transformer residual streams, read along token position at a
