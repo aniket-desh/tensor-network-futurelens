@@ -108,6 +108,17 @@ necessary (commuting fails), training unnecessary, order arbitrary-but-fixed.
   L20 running. All shared-recipe numbers — given the tuning result, read these as
   recipe-conditional, not architecture-superiority claims.
 
+## T+4:15 – T+5:00 — medium curve done; lr bracket; figures
+
+- **16E complete (medium, shared recipe, 4 seeds):** gap vs best baseline
+  L8 +0.21%±0.18, L12 +0.09%±0.30, L16 +0.02%±0.17, L20 +0.06%±0.11 — largest in the
+  early-middle, fading to tie with depth; and all recipe-conditional given 16B.
+- **lr 3e-5 bracket (seed 0):** MLP 0.1015 (hits the 15-epoch cap), bilinear 0.0993,
+  MPS 0.0931 → MLP's protocol-constrained optimum is a broad plateau ≈[3e-5, 3e-4]
+  at ~0.100–0.102; bracketed.
+- Figures rendered: fig_minclass, fig_powerlaw (log-log straight vs log-linear
+  curved), fig_medium_layers. Datasize 10k/20k done; 40k/80k + tail-α queued.
+
 ## T+2:15 — 16B interim: tuned-mean edge INVERTS (superseded by T+4:15 above)
 
 - MLP at lr 3e-4 (4 seeds): .1002/.0995/.0992/.1020 → **mean .1002 > MPS .0991**.
