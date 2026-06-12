@@ -55,7 +55,7 @@ a smooth curve, not an unlucky layer — and, given (2), recipe-conditional anyw
 **Verdict: Success modes 1 + 5.** The minimal mechanism is identified, and the
 predictive claim is closed as a clean, well-understood negative: *the tensor network
 was a stable random feature map wearing a physics costume; with the costume off, a
-tuned MLP wins everywhere except the smallest data regime.* (~560 words)
+tuned MLP wins everywhere except the smallest data regime.* (536 words)
 
 ---
 
